@@ -236,22 +236,22 @@ The original study was based on simulation and analysis code in C and Mathematic
 
 \section*{Methods}
 \subsection*{Neural network model}
-The simulations in the original paper were done in phase representation, but our implementation uses the more standard representation in terms of the neurons' membrane potential. The membrane potential dynamic $V_i$ (measured relative to the resting potential) of neuron $i$ is described by (a slightly rewritten version equivalent to equation (1) of \cite{Memmesheimer2012}):
+The simulations in the original paper were done in phase representation, but our implementation uses the more standard representation in terms of the neurons' membrane potential. The membrane potential $V_i$ (measured relative to the resting potential) of neuron $i$ is described by (a slightly rewritten version equivalent to equation (1) of \cite{Memmesheimer2012}):
 
 \begin{equation}
-\tau_m \frac{dV_i(t)}{dt} = - V_i(t) + V_0 + \sigma \big( \sum_{j\in E_i} w_\text{ex} \epsilon_{j}(t-\tau) \big) - \sum_{j \in I_i} w_\text{in}\epsilon_{j}(t-\tau),
+\tau_m \frac{dV_i(t)}{dt} = - V_i(t) + V_0 + \sigma \left( \sum_{j\in E_i} w_\text{ex} \epsilon_{j}(t-\tau) \right) - \sum_{j \in I_i} w_\text{in}\epsilon_{j}(t-\tau),
 \end{equation}
-where $V(t)$ is the membrane voltage at time $t$, $\tau_m$ the membrane time constant, $V_0$ the displacement of the membrane potential due to a constant external input, $w_\text{ex}$ and $w_\text{in}$ respectively the excitatory and inhibitory weights, $\tau$ the transmission delay, and $E_i$ and $I_i$ the indices of neurons that connect with respectively excitatory and inhibitory weights to neuron $i$. If the membrane potential crosses a threshold $\Theta$, it emits the spike and its membrane potential is reset to its resting potential, i.e. $\SI{0}{\milli\volt}$. The function $\epsilon_{j}$ is 1 whenever neuron $j$ spikes, and 0 otherwise
+where $V(t)$ is the membrane voltage at time $t$, $\tau_m$ the membrane time constant, $V_0$ the displacement of the membrane potential due to a constant external input, $w_\text{ex}$ and $w_\text{in}$ respectively the excitatory and inhibitory weights, $\tau$ the transmission delay, and $E_i$ and $I_i$ the indices of neurons that connect with respectively excitatory and inhibitory weights to neuron $i$. If the membrane potential crosses a threshold $\Theta$, it emits the spike and its membrane potential is reset to its resting potential, i.e. $\SI{0}{\milli\volt}$. The function $\epsilon_{j}$ is 1 whenever neuron $j$ spikes, and 0 otherwise.
 
 The originality of this model lays in a filtering of the excitatory inputs by the function $\sigma$ to model dendritic non-linearities. The study considers two functions $\sigma$ (see Fig.~1 of the original paper and insets in Fig.~\ref{fig:markov}). Linear coupling, defined by $\sigma(x)=x$, and non-linear coupling with:
-\[
+\begin{equation}
     \sigma(x)= 
 \begin{cases}
-    x,              & \text{if } x\leq V_a\\
-    V_a + \frac{V_c-V_a}{V_b-V_a} (x - V_a), & \text{if } V_a<x \leq V_b\\
-    V_c,            & \text{otherwise}
+    x              & \text{, if } x\leq V_a\\
+    V_a + \frac{V_c-V_a}{V_b-V_a} (x - V_a), & \text{, if } V_a<x \leq V_b\\
+    V_c            & \text{, otherwise.}
 \end{cases}
-\]
+\end{equation}
 For this non-linear function, the biological interpretation is that below a first threshold $V_a$, excitatory inputs are propagated passively by the dendrite and sum linearly. Above this threshold, they trigger a dendritic spike, resulting in an amplified somatic voltage. If they are even higher and cross the threshold $V_b$, they stop increasing the somatic voltage and saturate. Note that this non-linearity only affects spikes received synchronously as has been observed experimentally. With the introduction of this non-linearity, the modelled point neuron becomes an effective model of a neuron with one non-linear dendrite.
 
 The network consists of $N$ neurons, where a directed synaptic connection between a pair of neurons is established with probability $p_0$. Each of these connections is taken to be excitatory with probability $p_\text{ex}$, and inhibitory otherwise. Note that this connection scheme implies that neurons cannot be separated into groups of excitatory and inhibitory neurons, a neuron typically projects with both excitatory and inhibitory connections to other neurons.
@@ -324,7 +324,7 @@ We wanted reproducible simulations despite the use of random connectivity and in
 
 For the grid search presented in Fig.~\ref{fig:grid}, we varied inhibitory and excitatory synaptic weights between \SI{0.16}{\milli\volt} and \SI{0.4}{\milli\volt} (given that each neuron receives on average 150 excitatory and 150 inhibitory inputs, this corresponds to a ``total weight'' between \SI{24}{\milli\volt} and \SI{60}{\milli\volt}, as used on the axes of Fig.~\ref{fig:grid}), using 100 steps for each variable (comparable to the 96 steps used in the original publication). Each network was simulated 10 times with different initial conditions (synaptic connections and initial membrane potential values), whereas the original publication used 20 simulations per weight combination and additionally added ``1--50 random spikes initially in transit''.
 
-To numerically derive the evolution of synchronous pulse sizes presented in Fig.~\ref{fig:markov} (for the semi-analytical approach, see the next section), we performed simulations of \SI{56}{\milli\second} each. During each simulation, we stimulated the network at 50ms with a synchronous pulse of activity, consisting of between 1 and 176 neurons (varied in steps of 5 -- the original study used group sizes between 1 and 181 varied in steps of 6). We then observed the number of active neurons at \SI{55}{\milli\second}, i.e. at one $\tau$ after the stimulation. For each stimulation group size, we ran the simulations 50 times with different initial conditions, consistent with the original study.
+To numerically derive the evolution of synchronous pulse sizes presented in Fig.~\ref{fig:markov} (for the semi-analytical approach, see the next section), we performed simulations of \SI{56}{\milli\second} each. During each simulation, we stimulated the network at \SI{50}{\milli\second} with a synchronous pulse of activity, consisting of between 1 and 176 neurons (varied in steps of 5 -- the original study used group sizes between 1 and 181 varied in steps of 6). We then observed the number of active neurons at \SI{55}{\milli\second}, i.e. at one $\tau$ after the stimulation. For each stimulation group size, we ran the simulations 50~times with different initial conditions, consistent with the original study.
 
 \subsection*{Semi-analytical and analytical methods}
 We did not attempt to replicate the analytical solution for the evolution of synchronous pulses based on diffusion approximation (blue dots in Fig.~4 of \cite{Memmesheimer2012}).
