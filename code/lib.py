@@ -10,8 +10,6 @@ import brian2 as br2
 from brian2 import mV, ms
 
 mem = Memory(cachedir='./__joblib_cache__', verbose=0, compress=True)
-# Introduce a global variable setting the group size
-GROUP_SIZE = 100
 
 
 def group_size_evolutions(group_size, n_rep=1, linear=True, dt=0.1*ms,
@@ -69,7 +67,7 @@ calc_group_evolution_cached = mem.cache(calc_group_evolution)
 
 def run(runtime=250*ms, stim_time=150*ms, N=1000,
         linear=True, w_ex=0.2*mV, w_in=0.2*mV, repetition=0,
-        store_spikes=True, store_v=False, dt=0.1*ms, seed=None):
+        store_spikes=True, store_v=False, dt=0.1*ms, seed=None, group_size=100):
     """Run a simulation and return the resulting spiketrain.
 
     Note: the `repetition` argument is only used to distinguish multiple runs
@@ -105,7 +103,7 @@ def run(runtime=250*ms, stim_time=150*ms, N=1000,
         # Build stimulation
         stim = br2.SpikeGeneratorGroup(1, [0], [stim_time - dt])
         stim_syn = br2.Synapses(stim, G, on_pre="V = 2*Theta")
-        stim_syn.connect(i=0, j=np.arange(GROUP_SIZE))
+        stim_syn.connect(i=0, j=np.arange(group_size))
 
     # Build recurrent synaptic connections
     connections = np.random.rand(N, N) < 0.3
@@ -146,7 +144,7 @@ def run(runtime=250*ms, stim_time=150*ms, N=1000,
     inh_syn.connect(i=inh_i, j=inh_j)
     inh_syn.w = w_in
 
-    # Set random initial conditions
+    # Set random initial conditiong
     G.V = np.random.rand(N) * Theta
 
     if store_spikes:
@@ -176,7 +174,7 @@ run_with_cache = mem.cache(run)
 
 
 def run_and_bin(ext, inh, linear, repetition, stim_time=150*ms, dt=0.1*ms,
-                seed=None):
+                seed=None, group_size=100):
     """Run the network and bin the resulting spike rates with the `bin_spikes`
     function. Return the extracted information needed to classify runs into the
     four categories (see `classify_run`). This information is returned as a
@@ -190,7 +188,7 @@ def run_and_bin(ext, inh, linear, repetition, stim_time=150*ms, dt=0.1*ms,
     # Run simulation
     results = run_with_cache(w_ex=ext, w_in=inh, linear=linear,
                              stim_time=stim_time, dt=dt, repetition=repetition,
-                             store_spikes=False, seed=seed)
+                             store_spikes=False, seed=seed, group_size=group_size)
     rates = results['rate']
     delay_steps = int(round(5*ms/dt))
     stim_step = int(round(stim_time/dt))
@@ -213,7 +211,8 @@ run_and_bin_cached = mem.cache(run_and_bin)
 
 
 @mem.cache
-def do_repetitions(ext, inh, linear, n_rep, dt=0.1*ms, seeds=None):
+def do_repetitions(ext, inh, linear, n_rep, dt=0.1*ms, seeds=None,
+                   group_size=100):
     """Perform ``n_rep`` repeated simulation runs for the given parameters and
     return a list of the results (see `run_and_bin` for the result format).
     The simulation are run in parallel with multiprocessing."""
@@ -221,13 +220,15 @@ def do_repetitions(ext, inh, linear, n_rep, dt=0.1*ms, seeds=None):
         seeds = [None]*n_rep
     # Note that "n_jobs=-2" means: use all available processor except 1
     return Parallel(n_jobs=-2)(delayed(run_and_bin_cached)(ext, inh, linear, i,
-                                                           dt=dt, seed=seeds[i])
+                                                           dt=dt, seed=seeds[i],
+                                                           group_size=group_size)
                                for i in range(n_rep))
 
 
 @mem.cache
 def grid_search(weights=np.arange(0.16, 0.4, 0.375/150.)*mV,
-                n_rep=1, linear=True, quiet=False, dt=0.1*ms, seeds=None):
+                n_rep=1, linear=True, quiet=False, dt=0.1*ms, seeds=None,
+                group_size=100):
     """Perform a grid search over the given parameter range for excitatory and
     inhibitory synaptic connection strengths. Returns a dictionary mapping each
     combination of excitatory and inhibitory weights (provided as a tuple
@@ -241,7 +242,8 @@ def grid_search(weights=np.arange(0.16, 0.4, 0.375/150.)*mV,
         for inh in weights:
             print('.', end='')
             results[(ext/mV, inh/mV)] = do_repetitions(ext, inh, linear, n_rep,
-                                                       dt=dt, seeds=seeds)
+                                                       dt=dt, seeds=seeds,
+                                                       group_size=group_size)
         print()
     return results
 

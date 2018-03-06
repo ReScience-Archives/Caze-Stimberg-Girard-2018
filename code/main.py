@@ -9,8 +9,6 @@ from brian2 import mV, us, ms
 from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 
-# Adding the line below to modify GROUP_SIZE
-import lib
 from lib import run_with_cache, group_size_evolutions, calc_group_evolution_cached, decide_color, grid_search
 from plot import plot_population_activity, plot_markov, plot_grid
 
@@ -28,6 +26,7 @@ if not os.path.exists(FIG_FOLDER):
 
 # Set figure options from configuration file
 plt.style.use('figures.conf')
+
 
 def generate_seeds(main_seed, n_seeds):
     np.random.seed(main_seed)
@@ -59,11 +58,11 @@ def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
     if not quiet:
         print('Running simulations for Figure 3 ({} '
               'coupling) with group_size {}'.format('linear' if linear else 'nonlinear',
-                                              group_size))
+                                                    group_size))
 
     if short:
         par_range = np.linspace(0.16, 0.4, 10, endpoint=True)*mV
-        repetitions = 1
+        repetitions = 5
         name = "grid_short"
     else:
         par_range = np.linspace(0.16, 0.4, 100, endpoint=True)*mV
@@ -72,10 +71,8 @@ def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
 
     seeds = generate_seeds(seed, len(par_range)**2*repetitions)
 
-    # Generate the data
-    lib.GROUP_SIZE = group_size
     grid_results = grid_search(par_range, linear=linear, n_rep=repetitions,
-                               dt=dt, seeds=seeds)
+                               dt=dt, seeds=seeds, group_size=group_size)
     # Plot
     for method, method_string in zip(['max', 'mean'], ['', '_mean']):
         if linear:
@@ -124,9 +121,9 @@ def fig4(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None):
                                                               store_v=True,
                                                               repetition=i,
                                                               seed=seeds[seed_start+i])
-                                     for i in range(1, n_rep))
+                                      for i in range(1, n_rep))
     bins = result_list[0]['bins']
-    v_hist = np.sum(np.array([r['v'] for r in result_list],dtype=float), axis=0)
+    v_hist = np.sum(np.array([r['v'] for r in result_list], dtype=float), axis=0)
     v_hist /= np.sum(v_hist)  # Normalize the sum to 1
     if not quiet:
         print('\tCalculating semi-analytical solution')
