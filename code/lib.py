@@ -1,7 +1,6 @@
 from __future__ import print_function, division
 
 from collections import Counter
-from math import factorial
 
 import numpy as np
 from scipy.special import comb
@@ -11,9 +10,12 @@ import brian2 as br2
 from brian2 import mV, ms
 
 mem = Memory(cachedir='./__joblib_cache__', verbose=0, compress=True)
+# Introduce a global variable setting the group size
+GROUP_SIZE = 100
 
 
-def group_size_evolutions(group_size, n_rep=1, linear=True, dt=0.1*ms, seeds=None):
+def group_size_evolutions(group_size, n_rep=1, linear=True, dt=0.1*ms,
+                          seeds=None):
     """Return the evolution of the group size after one cycle"""
     group_ev = []
     for rep in range(n_rep):
@@ -21,27 +23,33 @@ def group_size_evolutions(group_size, n_rep=1, linear=True, dt=0.1*ms, seeds=Non
             seed = None
         else:
             seed = seeds[rep]
-        results = run_with_cache(56 * ms, group_size=group_size, stim_time=50 * ms,
-                                 linear=linear, repetition=rep, dt=dt, seed=seed)
+        results = run_with_cache(56 * ms, group_size=group_size,
+                                 stim_time=50 * ms, linear=linear,
+                                 repetition=rep, dt=dt, seed=seed)
         group_ev.append(np.sum(np.abs(results['t'] - 55 * ms) < dt / 2))
     return group_ev
+
 
 def F(bins, v_hist, epsilon):
     """Probability that an input of strength epsilon elicits a spike."""
     theta = bins[-1]
-    return np.sum(v_hist[bins[:-1]>theta-epsilon/mV])
+    return np.sum(v_hist[bins[:-1] > theta-epsilon/mV])
+
 
 def epsilon(n_ex, n_in, w_ex, w_in, linear=True):
     in_input = -n_in*w_in
     ex_input = n_ex*w_ex
     if not linear:
-        ex_input = np.clip(ex_input, 0*mV, 2*mV) + np.clip(2*(ex_input-2*mV), 0*mV, 4*mV)
+        ex_input = np.clip(ex_input, 0*mV, 2*mV) + np.clip(2*(ex_input-2*mV),
+                                                           0*mV, 4*mV)
     return in_input + ex_input
+
 
 def P_conn(group_size, n_ex, n_in, p_0, p_ex, p_in):
     n_remain = group_size - n_ex - n_in
     return (comb(group_size, n_ex+n_in, exact=True) * comb(n_ex+n_in, n_ex, exact=True) *
             (p_0*p_ex)**n_ex * (p_0*p_in)**n_in * (1 - p_0)**n_remain)
+
 
 def calc_group_evolution(bins, v_hist, group_size, w_ex=0.2*mV, w_in=0.2*mV,
                          N=1000, p_0=0.3, p_in=0.5, p_ex=0.5, linear=True):
@@ -58,7 +66,8 @@ def calc_group_evolution(bins, v_hist, group_size, w_ex=0.2*mV, w_in=0.2*mV,
 
 calc_group_evolution_cached = mem.cache(calc_group_evolution)
 
-def run(runtime=250*ms, group_size=100, stim_time=150*ms, N=1000,
+
+def run(runtime=250*ms, stim_time=150*ms, N=1000,
         linear=True, w_ex=0.2*mV, w_in=0.2*mV, repetition=0,
         store_spikes=True, store_v=False, dt=0.1*ms, seed=None):
     """Run a simulation and return the resulting spiketrain.
@@ -96,7 +105,7 @@ def run(runtime=250*ms, group_size=100, stim_time=150*ms, N=1000,
         # Build stimulation
         stim = br2.SpikeGeneratorGroup(1, [0], [stim_time - dt])
         stim_syn = br2.Synapses(stim, G, on_pre="V = 2*Theta")
-        stim_syn.connect(i=0, j=np.arange(group_size))
+        stim_syn.connect(i=0, j=np.arange(GROUP_SIZE))
 
     # Build recurrent synaptic connections
     connections = np.random.rand(N, N) < 0.3
@@ -165,6 +174,7 @@ def run(runtime=250*ms, group_size=100, stim_time=150*ms, N=1000,
 
 run_with_cache = mem.cache(run)
 
+
 def run_and_bin(ext, inh, linear, repetition, stim_time=150*ms, dt=0.1*ms,
                 seed=None):
     """Run the network and bin the resulting spike rates with the `bin_spikes`
@@ -226,7 +236,8 @@ def grid_search(weights=np.arange(0.16, 0.4, 0.375/150.)*mV,
     for ext in weights:
         if not quiet:
             print('exc=%.3fmV (%d values for inh, '
-                  '%d repetitions each): ' % (ext/mV, len(weights), n_rep), end='')
+                  '%d repetitions each): ' % (ext/mV, len(weights), n_rep),
+                  end='')
         for inh in weights:
             print('.', end='')
             results[(ext/mV, inh/mV)] = do_repetitions(ext, inh, linear, n_rep,

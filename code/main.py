@@ -9,6 +9,8 @@ from brian2 import mV, us, ms
 from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 
+# Adding the line below to modify GROUP_SIZE
+import lib
 from lib import run_with_cache, group_size_evolutions, calc_group_evolution_cached, decide_color, grid_search
 from plot import plot_population_activity, plot_markov, plot_grid
 
@@ -38,8 +40,10 @@ def fig2(quiet=False, dt=0.1*ms, seed=None):
     if not quiet:
         print('Running simulations for Figure 2')
     seeds = generate_seeds(seed, 2)
-    results = run_with_cache(w_ex=0.2*mV, w_in=0.2*mV, linear=True, dt=dt, seed=seeds[0])
-    results_nl = run_with_cache(w_ex=0.2*mV, w_in=0.2*mV, linear=False, dt=dt, seed=seeds[1])
+    results = run_with_cache(w_ex=0.2*mV, w_in=0.2*mV, linear=True, dt=dt,
+                             seed=seeds[0])
+    results_nl = run_with_cache(w_ex=0.2*mV, w_in=0.2*mV, linear=False, dt=dt,
+                                seed=seeds[1])
 
     figname = "spikes_l_dt_%.0fus.pdf" % (dt/us)
     plot_population_activity(results, save=FIG_FOLDER + figname, dt=dt)
@@ -47,17 +51,19 @@ def fig2(quiet=False, dt=0.1*ms, seed=None):
     plot_population_activity(results_nl, save=FIG_FOLDER + figname, dt=dt)
 
 
-def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None):
+def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
+         group_size=100):
     """Perform a grid search over the excitatory and inhibitory coupling
     strengths and generate Figures 3a and 3b of the original paper
     (https://doi.org/10.1371/journal.pcbi.1002384.g003)"""
     if not quiet:
         print('Running simulations for Figure 3 ({} '
-              'coupling)'.format('linear' if linear else 'nonlinear'))
+              'coupling) with group_size {}'.format('linear' if linear else 'nonlinear',
+                                              group_size))
 
     if short:
         par_range = np.linspace(0.16, 0.4, 10, endpoint=True)*mV
-        repetitions = 5
+        repetitions = 1
         name = "grid_short"
     else:
         par_range = np.linspace(0.16, 0.4, 100, endpoint=True)*mV
@@ -67,6 +73,7 @@ def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None):
     seeds = generate_seeds(seed, len(par_range)**2*repetitions)
 
     # Generate the data
+    lib.GROUP_SIZE = group_size
     grid_results = grid_search(par_range, linear=linear, n_rep=repetitions,
                                dt=dt, seeds=seeds)
     # Plot
@@ -74,7 +81,8 @@ def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None):
         if linear:
             figname = name + "_l_dt_%.0fus%s.pdf" % (dt/us, method_string)
         else:
-            figname = name + "_nl_dt_%.0fus%s.pdf" % (dt/us, method_string)
+            figname = name + "_nl_dt_%.0fus%s_gs%s.pdf" % (dt/us, method_string,
+                                                           group_size)
         colors = np.zeros((len(par_range), len(par_range), 3))
         for i, j in product(range(len(par_range)), range(len(par_range))):
             c = decide_color(grid_results[par_range[i]/mV, par_range[j]/mV],
@@ -139,8 +147,10 @@ def all_figs(short=True, quiet=False, dt=0.1*ms):
     original paper, to reduce the total simulation time."""
     fig2(quiet=quiet, dt=dt, seed=main_seeds[0])
 
-    fig3(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[1])
     fig3(linear=True, short=short, quiet=quiet, dt=dt, seed=main_seeds[2])
+    fig3(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[1])
+    fig3(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[1],
+         group_size=75)
 
     fig4(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[3])
     fig4(linear=True, short=short, quiet=quiet, dt=dt, seed=main_seeds[4])
