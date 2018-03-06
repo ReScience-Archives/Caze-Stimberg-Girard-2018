@@ -57,8 +57,9 @@ def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
     (https://doi.org/10.1371/journal.pcbi.1002384.g003)"""
     if not quiet:
         print('Running simulations for Figure 3 ({} '
-              'coupling) with group_size {}'.format('linear' if linear else 'nonlinear',
-                                                    group_size))
+              'coupling) with initial '
+              'group size {}'.format('linear' if linear else 'nonlinear',
+                                     group_size))
 
     if short:
         par_range = np.linspace(0.16, 0.4, 10, endpoint=True)*mV
@@ -76,10 +77,11 @@ def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
     # Plot
     for method, method_string in zip(['max', 'mean'], ['', '_mean']):
         if linear:
-            figname = name + "_l_dt_%.0fus%s.pdf" % (dt/us, method_string)
+            figname = name + "_l_dt_%.0fus_gs%d%s.pdf" % (dt/us, group_size,
+                                                          method_string)
         else:
-            figname = name + "_nl_dt_%.0fus%s_gs%s.pdf" % (dt/us, method_string,
-                                                           group_size)
+            figname = name + "_nl_dt_%.0fus_gs%d%s.pdf" % (dt/us, group_size,
+                                                           method_string)
         colors = np.zeros((len(par_range), len(par_range), 3))
         for i, j in product(range(len(par_range)), range(len(par_range))):
             c = decide_color(grid_results[par_range[i]/mV, par_range[j]/mV],
