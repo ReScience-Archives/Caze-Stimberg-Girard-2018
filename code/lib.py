@@ -88,7 +88,7 @@ def run(runtime=250*ms, stim_time=150*ms, N=1000,
     V0 = 17.6 * mV / tau_m
 
     if linear:
-        # Build the group of neuron to use
+        # Build the group of neurons to use
         eq = "dV/dt = -gamma*V + V0 : volt"
         G = br2.NeuronGroup(N, model=eq, threshold="V>Theta",
                             reset="V=0*mV", method='euler')
@@ -105,6 +105,36 @@ def run(runtime=250*ms, stim_time=150*ms, N=1000,
         stim_syn = br2.Synapses(stim, G, on_pre="V = 2*Theta")
         stim_syn.connect(i=0, j=np.arange(group_size))
 
+    # Number of spikes initially "in transit" (between 1 and 50 (inclusive))
+    n_transit_spikes = np.random.random_integers(50)
+    # "In transit" means that the spikes arrive in the first 5ms, i.e. as if
+    # triggered by events before the start of the simulation (the synaptic delay
+    # is 5ms and therefore all spikes triggered by neurons within the network
+    # will arrive later than that).
+    transit_spikes = br2.SpikeGeneratorGroup(n_transit_spikes,
+                                             np.arange(n_transit_spikes),
+                                             np.random.rand(n_transit_spikes)*5*ms)
+
+    # We'll assume the initial spikes are 50% excitatory and 50% inhibitory
+    n_inh_transit_spikes = n_transit_spikes//2
+    n_exc_transit_spikes = n_transit_spikes - n_inh_transit_spikes
+    if n_inh_transit_spikes > 0:
+        inh_transit_syn = br2.Synapses(G, G, 'w : volt (constant, shared)',
+                                       on_pre='V -= w', delay=5 * ms - dt)
+        inh_transit_syn.connect(i=np.arange(n_inh_transit_spikes),
+                                j=np.random.randint(N, size=n_inh_transit_spikes))
+        inh_transit_syn.w = w_in
+
+    if linear:  # See explanations about linear vs. non-linear coupling below
+        exc_transit_syn = br2.Synapses(G, G, 'w : volt (constant, shared)',
+                                       on_pre='V += w', delay=5 * ms - dt)
+    else:
+        exc_transit_syn = br2.Synapses(G, G, 'w : volt (constant, shared)',
+                               on_pre='ve += w', delay=5 * ms - dt)
+    exc_transit_syn.connect(i=np.arange(n_exc_transit_spikes),
+                            j=np.random.randint(N, size=n_exc_transit_spikes))
+    exc_transit_syn.w = w_ex
+
     # Build recurrent synaptic connections
     connections = np.random.rand(N, N) < 0.3
     exc_or_inh = np.random.rand(N, N) < 0.5
@@ -118,10 +148,6 @@ def run(runtime=250*ms, stim_time=150*ms, N=1000,
                                on_pre='V += w', delay=5 * ms - dt)
         exc_syn.connect(i=exc_i, j=exc_j)
         exc_syn.w = w_ex
-        inh_syn = br2.Synapses(G, G, 'w : volt (constant, shared)',
-                               on_pre='V -= w', delay=5 * ms - dt)
-        inh_syn.connect(i=inh_i, j=inh_j)
-        inh_syn.w = w_in
     else:
         # For nonlinearly summing synapses, we do not target the membrane
         # potential directly, but store the sum of all synaptic activity in
