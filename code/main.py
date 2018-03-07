@@ -87,7 +87,10 @@ def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
             c = decide_color(grid_results[par_range[i]/mV, par_range[j]/mV],
                              method=method)
             colors[j][i] = np.array(c)
-        plot_grid(par_range * 150, colors, save=FIG_FOLDER + figname)
+        # We only add the ylabel to the left-most panel
+        show_ylabel = linear and group_size == 100
+        plot_grid(par_range * 150, colors, show_ylabel=show_ylabel,
+                  save=FIG_FOLDER + figname)
 
 
 def fig4(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None):
@@ -106,8 +109,8 @@ def fig4(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None):
         n_rep = 50
         step_size = 1
 
-    gsize_x = np.arange(1, 180, 5)
-    analytic_x = np.arange(1, 180, step_size)
+    gsize_x = np.arange(1, 182, 5)
+    analytic_x = np.arange(1, 182, step_size)
     seeds = generate_seeds(seed, len(gsize_x)*n_rep + n_rep)
     # Numerical results
     gsize = Parallel(n_jobs=-2)(delayed(group_size_evolutions)(i, n_rep,

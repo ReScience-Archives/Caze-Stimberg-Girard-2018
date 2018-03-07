@@ -29,15 +29,16 @@ def plot_population_activity(results, ymax1=250, save=None, dt=0.1*ms):
     plt.figure()
     # Draw the raster plot
     ax_raster.vlines(np.arange(150, 250, 5), 0, 200, color="gray", linestyle='dashed')
-    ax_raster.plot(spikes_t/ms, spikes_i, '|', color="black")
+    ax_raster.plot(spikes_t/ms, spikes_i + 1, '|', color="black")  # Plot a 1-based neuron index
     red_spikes = ((spikes_t >= 150*ms) &
                   ((spikes_t % (5*ms) < dt / 2) |
                    (spikes_t % (5*ms) > (5*ms - dt / 2))))
 
-    ax_raster.plot(spikes_t[red_spikes]/ms, spikes_i[red_spikes], 'r|')
+    ax_raster.plot(spikes_t[red_spikes]/ms, spikes_i[red_spikes] + 1, 'r|')
 
     ax_raster.set(xlim=(110, 220), ylim=(0, 200), xlabel='Time (ms)',
-                  ylabel='Neuron')
+                  ylabel='Neuron', xticks=[120, 150, 180, 210],
+                  yticks=[1, 100, 200])
 
     bins = np.arange(0, 250 + dt/ms, dt/ms)
     binned_activity, _ = np.histogram(spikes_t / ms, bins)
@@ -50,16 +51,16 @@ def plot_population_activity(results, ymax1=250, save=None, dt=0.1*ms):
 
     # Draw the population rate
     ax_binned.bar(bins[:-1], binned_activity, color="black")
-    ax_binned.set(ylim=(0, ymax1), ylabel='Rate')
+    ax_binned.set(ylim=(0, ymax1), ylabel='Rate', yticks=[0, 100, 200])
 
     # Draw the group size
     ax_groups.bar(np.arange(150, 250, 5), group_size, color='red')
-    ax_groups.set(ylim=(0, ymax1), ylabel="g'")
+    ax_groups.set(ylim=(0, ymax1), ylabel="g'", yticks=[0, 100, 200])
 
     save_fig(save, fig)
 
 
-def plot_grid(par_range, colors, save=None):
+def plot_grid(par_range, colors, show_ylabel=True, save=None):
     """Draw the result of a parameter search"""
     fig, ax = plt.subplots(figsize=(1.72, 1.72),  # three panels
                            gridspec_kw={'top': 0.95,
@@ -70,8 +71,10 @@ def plot_grid(par_range, colors, save=None):
                               max(par_range/mV),
                               max(par_range/mV),
                               min(par_range/mV)])
-    ax.set(xlabel="Total excitatory weight", ylabel="Total inhibitory weight",
+    ax.set(xlabel="Total excitatory weight",
            xticks=[30, 45, 60], yticks=[30, 45, 60])
+    if show_ylabel:
+        ax.set_ylabel("Total inhibitory weight")
     save_fig(save, fig=fig)
 
 
@@ -84,10 +87,10 @@ def plot_markov(group_x, group_ev, analytic_x, semi_analytic, save=None, linear=
                                         'right': 0.95})
     # Numeric solution
     ax.set(aspect='equal', xticks=[1] + list(range(25, group_x[-1]+1, 25)),
-       yticks=[1] + list(range(25, group_x[-1]+1, 25)),
-       xlim=(0, group_x[-1]), ylim=(0, group_x[-1]),
-       xlabel="# of synchronized neurons g'0",
-       ylabel="# of synchronized neurons g'1")
+           yticks=list(range(0, group_x[-1]+1, 25)),
+           xlim=(-5, group_x[-1]+3.5/2), ylim=(-5, group_x[-1]+3.5/2),
+           xlabel="# of synchronized neurons $g'_0$",
+           ylabel="# of synchronized neurons $g'_1$")
     ax.plot(group_x, np.array(group_ev), marker='_',
             ms=3.5,
             mew=1,
