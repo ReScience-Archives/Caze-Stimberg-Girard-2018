@@ -61,16 +61,17 @@ def plot_population_activity(results, ymax1=250, save=None, dt=0.1*ms):
 
 def plot_grid(par_range, colors, save=None):
     """Draw the result of a parameter search"""
-    fig, ax = plt.subplots(gridspec_kw={'top': 0.95,
+    fig, ax = plt.subplots(figsize=(1.72, 1.72),  # three panels
+                           gridspec_kw={'top': 0.95,
                                         'right': 0.95,
-                                        'left': 0.175,
-                                        'bottom': 0.15})
+                                        'left': 0.25,
+                                        'bottom': 0.23})
     ax.imshow(colors, extent=[min(par_range/mV),
                               max(par_range/mV),
                               max(par_range/mV),
                               min(par_range/mV)])
-    ax.set_xlabel("Total ext weight")
-    ax.set_ylabel("Total Inh weight")
+    ax.set(xlabel="Total excitatory weight", ylabel="Total inhibitory weight",
+           xticks=[30, 45, 60], yticks=[30, 45, 60])
     save_fig(save, fig=fig)
 
 
