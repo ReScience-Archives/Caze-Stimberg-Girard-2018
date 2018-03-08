@@ -13,7 +13,7 @@ mem = Memory(cachedir='./__joblib_cache__', verbose=0, compress=True)
 
 
 def group_size_evolutions(group_size, n_rep=1, linear=True, dt=0.1*ms,
-                          seeds=None):
+                          bias_correction=False, seeds=None):
     """Return the evolution of the group size after one cycle"""
     group_ev = []
     for rep in range(n_rep):
@@ -24,7 +24,14 @@ def group_size_evolutions(group_size, n_rep=1, linear=True, dt=0.1*ms,
         results = run_with_cache(56 * ms, group_size=group_size,
                                  stim_time=50 * ms, linear=linear,
                                  repetition=rep, dt=dt, seed=seed)
-        group_ev.append(np.sum(np.abs(results['t'] - 55 * ms) < dt / 2))
+        next_iteration = np.sum(np.abs(results['t'] - 55 * ms) < dt / 2)
+        if bias_correction:
+            spikes_before_stim = np.sum(results['t'] < 50*ms)
+            # Reduce the group size by the number of spikes that we'd expect
+            # by chance in a time step with the given background activity.
+            correction = spikes_before_stim / (50*ms/dt)
+            next_iteration -= correction
+        group_ev.append(next_iteration)
     return group_ev
 
 
@@ -252,22 +259,28 @@ def do_repetitions(ext, inh, linear, n_rep, dt=0.1*ms, seeds=None,
 
 
 @mem.cache
-def grid_search(weights=np.arange(0.16, 0.4, 0.375/150.)*mV,
+def grid_search(weights_exc=np.arange(0.16, 0.4, 0.375/150.)*mV,
+                weights_inh=None,
                 n_rep=1, linear=True, quiet=False, dt=0.1*ms, seeds=None,
                 group_size=100):
     """Perform a grid search over the given parameter range for excitatory and
-    inhibitory synaptic connection strengths. Returns a dictionary mapping each
-    combination of excitatory and inhibitory weights (provided as a tuple
-    ``(exc, inh)`` to a list of results (as returned by `run_and_bin`)."""
+    inhibitory synaptic connection strengths. If only the parameter range for
+    excitatory connections is specified, then the same range is used for
+    inhibitory connections.
+    Returns a dictionary mapping each combination of excitatory and inhibitory
+    weights (provided as a tuple ``(exc, inh)`` to a list of results (as
+    returned by `run_and_bin`)."""
+    if weights_inh is None:
+        weights_inh = weights_exc
     results = {}
-    for ext in weights:
+    for exc in weights_exc:
         if not quiet:
             print('exc=%.3fmV (%d values for inh, '
-                  '%d repetitions each): ' % (ext/mV, len(weights), n_rep),
+                  '%d repetitions each): ' % (exc/mV, len(weights_inh), n_rep),
                   end='')
-        for inh in weights:
+        for inh in weights_inh:
             print('.', end='')
-            results[(ext/mV, inh/mV)] = do_repetitions(ext, inh, linear, n_rep,
+            results[(exc/mV, inh/mV)] = do_repetitions(exc, inh, linear, n_rep,
                                                        dt=dt, seeds=seeds,
                                                        group_size=group_size)
         print()
