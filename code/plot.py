@@ -40,6 +40,10 @@ def plot_population_activity(results, ymax1=250, save=None, dt=0.1*ms):
                   ylabel='Neuron', xticks=[120, 150, 180, 210],
                   yticks=[1, 100, 200])
 
+    # Note that we use the simulation dt as the bin size here, so that we don't
+    # lose any time resolution when checking for spikes triggered by the
+    # synchronous stimulation. When plotting the population rate, we however
+    # bin into bins of 1ms
     bins = np.arange(0, 250 + dt/ms, dt/ms)
     binned_activity, _ = np.histogram(spikes_t / ms, bins)
     # Select the spikes that (most likely) arise from the synchronous
@@ -49,8 +53,11 @@ def plot_population_activity(results, ymax1=250, save=None, dt=0.1*ms):
     delay_steps = int(round(5*ms/dt))
     group_size = binned_activity[int(round(150*ms/dt))::delay_steps]
 
-    # Draw the population rate
-    ax_binned.bar(bins[:-1], binned_activity, color="black")
+    # Draw the population rate (with 1ms bins)
+    steps_per_bin = int(round(1*ms/dt))
+    binned_activity_1ms = binned_activity.reshape(-1, steps_per_bin).sum(axis=1)
+    ax_binned.bar(bins[:-1:steps_per_bin], binned_activity_1ms,
+                  color="black")
     ax_binned.set(ylim=(0, ymax1), ylabel='Rate', yticks=[0, 100, 200])
 
     # Draw the group size
