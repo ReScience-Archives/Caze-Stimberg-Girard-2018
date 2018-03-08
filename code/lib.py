@@ -69,8 +69,11 @@ def calc_group_evolution(bins, v_hist, group_size, w_ex=0.2*mV, w_in=0.2*mV,
             P_spike += P_triggered * P_conn(group_size, n_ex, n_in, p_0, p_ex, p_in)
     return (N - group_size)*P_spike
 
+# Note that this is the same as adding the @mem.cache decorator to the function,
+# but the decorator leaves the name of the function unchanged which leads to
+# problems with joblib's Parallel/delayed mechanism
+# (see https://github.com/joblib/joblib/issues/226)
 calc_group_evolution_cached = mem.cache(calc_group_evolution)
-
 
 def run(runtime=250*ms, stim_time=150*ms, N=1000,
         linear=True, w_ex=0.2*mV, w_in=0.2*mV, repetition=0,
@@ -203,6 +206,7 @@ def run(runtime=250*ms, stim_time=150*ms, N=1000,
         results['v'], results['bins'] = np.histogram(v_mon.V/mV, bins=bins)
     return results
 
+# (See note for calc_group_evolution_cached above)
 run_with_cache = mem.cache(run)
 
 
@@ -237,9 +241,7 @@ def run_and_bin(ext, inh, linear, repetition, stim_time=150*ms, dt=0.1*ms,
               np.max(after_stim))
     return result
 
-# Note that this is the same as adding the decorator @mem.cached to the function
-# above, but this form of usage (where the function name is unchanged) is not
-# compatible with the multipprocessing approach we use in `do_repetions`.
+# (See note for calc_group_evolution_cached above)
 run_and_bin_cached = mem.cache(run_and_bin)
 
 
