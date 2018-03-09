@@ -209,10 +209,6 @@ def all_figs(short=True, quiet=False, dt=0.1*ms):
     fig4(linear=True, short=short, quiet=quiet, dt=dt,
          bias_correction=True, seed=main_seeds[5])
 
-    fig3_detail(linear=False, short=short, quiet=quiet, dt=1*ms,
-                seed=main_seeds[6])
-    fig3_detail(linear=False, short=short, quiet=quiet, dt=0.5*ms,
-                seed=main_seeds[6])
     fig3_detail(linear=False, short=short, quiet=quiet, dt=0.1*ms,
                 seed=main_seeds[6])
     fig3_detail(linear=False, short=short, quiet=quiet, dt=0.05*ms,
