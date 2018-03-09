@@ -44,10 +44,10 @@ We modified the discussion accordingly (see L434 in the .tex file).
 
 We have now clarified this in the text. The derivation is just provided as a
 more detailed description of the approach presented in the original article but
-is identical. There is a potential difference in the way the observed membrane
-potential distribution is used as an estimate of P(V), as the details (e.g.
-number of bins for the histogram, use of interpolation/smoothing, etc.) were not
-mentioned in the original article.
+is otherwise identical. There is a potential difference in the way the observed
+membrane potential distribution is used as an estimate of P(V), as the details
+(e.g. number of bins for the histogram, use of interpolation/smoothing, etc.)
+were not mentioned in the original article.
 
 > I don't fully agree with the the statement that the semi-analytical result
 > underestimates the numerical one, if anything to me it looks shifted to the
@@ -82,6 +82,25 @@ We have added some more quantitative comparison to the results in the original
 work (See L328).
 
 ## Minor issues
+
+> In lib.py, I am a bit puzzled about the way how the function "run_with_cache" is defined. Why can't
+> the run function be decorated with `@mem.cache` as for the other functions?
+
+Functions that are to be used with joblib's Parallel/delayed mechanism cannot
+use the `@mem.cache` decorator directly (this is a known limitation of joblib
+and has to do with the inability of Python's pickle mechanism to pickle two
+functions that have the same name). We have now added a more detailed comment
+about this to the first time in `lib.py` where this occurs (the definition of
+`calc_group_evolution_cached`) and refer back to this comment for the other
+functions such as `run_with_cache`.
+
+
+> Could the authors elaborate on the definition of V0 in line 81. It does not seem to be included in 
+> Table 1 or the main text.
+
+V0 is the membrane potential displacement due to a constant input current. It
+is included in equation 1 and mentioned in the surrounding text, but its value
+was never mentioned. We now include it in Table 1.
 
 > The description for implementing the nonlinear networks could be rewritten to match closer the
 > mathematical definitions. Start with describing the use of the clipping
