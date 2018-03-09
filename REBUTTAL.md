@@ -1,5 +1,5 @@
 We want to thank the reviewers for their well-intentioned and valuable
-comments. We describe here how we change the manuscript to adress their
+comments. We describe, when needed, how we change the manuscript to adress their
 comments.  
 
 === RW1 ===
@@ -46,46 +46,50 @@ acknowledge that details in the original work were unclear to reproduce the
 analytic approach (see L333)
 
 
-> From what I understand, you build 50 linear networks and 50
-> nonlinear networks (with random connectivity )and simulate each network once
-> for 250ms (but from how it's written it could sound as though you are running
-> multiple simulations of the same two networks - i.e. with the same
-> connections), whereas in the original they build 100 random networks (50 and
-> 50) and simulate each ten times. Could you clarify what simulations you are
-> running to estimate P(V) and how they compare to what the original paper does?
-> It may also be good to address this difference in the paper, as you have done
-> in most other cases.  We clarified this point in the main text Edit: I think my
+> From what I understand, you build 50 linear networks and 50 nonlinear
+> networks (with random connectivity )and simulate each network once for 250ms
+> (but from how it's written it could sound as though you are running multiple
+> simulations of the same two networks - i.e. with the same connections),
+> whereas in the original they build 100 random networks (50 and 50) and
+> simulate each ten times. Could you clarify what simulations you are running
+> to estimate P(V) and how they compare to what the original paper does?  It
+> may also be good to address this difference in the paper, as you have done in
+> most other cases.  We clarified this point in the main text Edit: I think my
 > confusion in the point above may also be partly due to the fact that when you
-> say 'a network is simulated n times' you mean that also new random connectivity
-> is generated in each simulation (whereas for me intuitively simulating a
-> network n times means keeping the architecture and drawing new initial
-> potentials). This becomes clear since elsewhere you say: 'Each network was
-> simulated 10 times with different initial conditions (synaptic connections and
-> initial membrane potential values)'. It may be good to be explicit for clarity
+> say 'a network is simulated n times' you mean that also new random
+> connectivity is generated in each simulation (whereas for me intuitively
+> simulating a network n times means keeping the architecture and drawing new
+> initial potentials). This becomes clear since elsewhere you say: 'Each
+> network was simulated 10 times with different initial conditions (synaptic
+> connections and initial membrane potential values)'. It may be good to be
+> explicit for clarity
 
 We now further clarify this point.  
 
-=== RW2 ===
+# RW2
 
-> Major issue: First, while many of the
-> decisions made by the authors have been explained, such as the choice of Brian
-> and certain parameter adjustments, I am missing an explanation for why the
-> authors decided not to use the original analytical solution as well.
+## Major issue: 
+
+> First, while many of the decisions made by the authors have been explained,
+> such as the choice of Brian and certain parameter adjustments, I am missing
+> an explanation for why the authors decided not to use the original analytical
+> solution as well. 
+
+We further justify our choice (see L339 in tex file). The analytical was less
+explicitly described than the semi-analytical. We can contact the original
+authors to have further details. We were happy to reproduce at least on the
+approach, but we could try to have it reimplemented when we have further
+details.
+
 > Furthermore, differences between this Figure (3) and the original that are
-> described are too short. Instead of only replicating the figure and describing
-> a "good match", I would like to see a more quantitative comparison (e.g.,
-> position of the maximum, intersections, etc.). The same applies to Fig. 2 (see
-> below).  Minor issues: Manuscript: Nice introduction. In line 2, there should
-> be a comma after "However". Maybe, a final sentence could summarize the main
-> findings of the replication.  Methods are very intuitive and sufficiently
-> described. On page 1, I would suggest removing "dynamic" after membrane
-> potential. Also, in my personal opinion, often used comments in brackets
-> disturb the flow of reading.  In Eq. 1, I would reformat the brackets encasing
-> the nonlinear function to be larger.  On page 2, there is a period mark missing
-> when describing the spike train function \epsilon.  Why is the equation for the
-> nonlinearity function not numbered? I would also suggest moving the commas
-> after the cases. After "otherwise" there should be a period mark.  When
-> describing the biological observation of nonlinearity only affecting
+> described are too short. Instead of only replicating the figure and
+> describing a "good match", I would like to see a more quantitative comparison
+> (e.g., position of the maximum, intersections, etc.). The same applies to
+> Fig. 2 (see below).
+
+## Minor issues
+
+> When describing the biological observation of nonlinearity only affecting
 > synchronous spikes, I would like to see references.  Fantastic description of
 > what the neuron model effectively is (point neuron with a single nonlinear
 > dendrite) I enjoyed reading the argumentation for a clock-driven model with
