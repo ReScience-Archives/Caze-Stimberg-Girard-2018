@@ -441,5 +441,38 @@ We would like to thank Raoul Martin Memmesheimer for providing implementation de
 {\sffamily \small
    \printbibliography[title=References]
 %}
+\clearpage
+\appendix
+\section*{Supplementary Figures}
+\begin{figure}
+\centering
+\begin{subfigure}[t]{0.33\textwidth}
+\caption{}\vspace{-1ex}
+\includegraphics[width=\textwidth]{Figs/grid_nl_dt_100us_gs100_mean_detail.pdf}
+\end{subfigure}%
+\begin{subfigure}[t]{0.33\textwidth}
+\caption{}\vspace{-1ex}
+\includegraphics[width=\textwidth]{Figs/grid_nl_dt_50us_gs100_mean_detail.pdf}
+\end{subfigure}
+\begin{subfigure}[t]{0.33\textwidth}
+\caption{}\vspace{-1ex}
+\includegraphics[width=\textwidth]{Figs/grid_nl_dt_10us_gs100_mean_detail.pdf}
+\end{subfigure}
+\caption{\label{fig:grid_detail}
+\textbf{Qualitative network behaviour as a function of excitatory and inhibitory connection strength for non-linearly coupled networks simulated with different simulation time steps.} Color code as in Fig.~\ref{fig:grid}. Results are shown for a smaller range of connection strengths than in Fig.~\ref{fig:grid}. The total inhibitory connection strength was varied between \SI{24}{\milli\volt} and \SI{34.55}{\milli\volt}, the total excitatory connection strength was varied between \SI{34.91}{\milli\volt} and \SI{45.45}{\milli\volt}, i.e. the parameter range corresponds to a square region at the top of Fig.~\ref{fig:grid}B. Simulations where performed with simulation time steps of \SI{0.1}{\milli\second} (A; the value used for all other simulations shown), \SI{0.05}{\milli\second} (B), and \SI{0.01}{\milli\second} (C).}
+\end{figure}
 
+\begin{figure}
+\centering
+\begin{subfigure}[t]{0.5\textwidth}
+\caption{}\vspace{-1ex}
+\includegraphics[width=\textwidth]{Figs/markov_l_dt_100us_corrected.pdf}
+\end{subfigure}%
+\begin{subfigure}[t]{0.5\textwidth}
+\caption{}\vspace{-1ex}
+\includegraphics[width=\textwidth]{Figs/markov_nl_dt_100us_corrected.pdf}
+\end{subfigure}
+\caption{\label{fig:markov_corrected}
+\textbf{Evolution of synchronous pulses in linearly (A) and non-linearly (B) coupled networks, corrected for the background activity.} All conventions as in Fig.~\ref{fig:markov}. The numerical solutions (grey lines and green squares) have been corrected by subtracting the background activity that is expected to occur by chance at every time step, i.e. the ``false positive'' spikes that are counted as being part of the synchronous spike. Background activity was estimated from the total activity before the stimulation with the synchronous pulse and, for a simulation time step of \SI{0.1}{\milli\second}, amounted to about 5.5 spikes per time step.}
+\end{figure}
 \end{document}

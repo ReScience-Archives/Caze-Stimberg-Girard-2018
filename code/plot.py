@@ -78,8 +78,13 @@ def plot_grid(par_range_exc, par_range_inh, colors, show_ylabel=True, save=None)
                               max(par_range_exc/mV),
                               max(par_range_inh/mV),
                               min(par_range_inh/mV)])
-    ax.set(xlabel="Total excitatory weight",
-           xticks=[30, 45, 60], yticks=[30, 45, 60])
+    if par_range_exc[-1] - par_range_exc[0] > 30*mV:  # full exploration
+        xticks = [30, 45, 60]
+        yticks = [30, 45, 60]
+    else:  # exploration of small zone
+        xticks = [35, 40, 45]
+        yticks = [25, 30]
+    ax.set(xlabel="Total excitatory weight", xticks=xticks, yticks=yticks)
     if show_ylabel:
         ax.set_ylabel("Total inhibitory weight")
     save_fig(save, fig=fig)
