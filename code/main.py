@@ -19,7 +19,8 @@ br2.prefs.codegen.target = 'cython'
 
 FIG_FOLDER = "../article/Figs/"
 
-main_seeds = [3982293089, 1861487226, 2570878100, 3472600360, 2780156760]
+main_seeds = [3982293089, 1861487226, 2570878100, 3472600360, 2780156760,
+              1966509933, 1687607157]
 
 if not os.path.exists(FIG_FOLDER):
     os.makedirs(FIG_FOLDER)
@@ -50,6 +51,7 @@ def fig2(quiet=False, dt=0.1*ms, seed=None):
     plot_population_activity(results_nl, save=FIG_FOLDER + figname, dt=dt)
 
 
+ 
 def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
          group_size=100):
     """Perform a grid search over the excitatory and inhibitory coupling
@@ -57,8 +59,9 @@ def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
     (https://doi.org/10.1371/journal.pcbi.1002384.g003)"""
     if not quiet:
         print('Running simulations for Figure 3 ({} '
-              'coupling) with group_size {}'.format('linear' if linear else 'nonlinear',
-                                                    group_size))
+              'coupling) with initial '
+              'group size {}'.format('linear' if linear else 'nonlinear',
+                                     group_size))
 
     if short:
         par_range = np.linspace(0.16, 0.4, 10, endpoint=True)*mV
@@ -76,25 +79,74 @@ def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
     # Plot
     for method, method_string in zip(['max', 'mean'], ['', '_mean']):
         if linear:
-            figname = name + "_l_dt_%.0fus%s.pdf" % (dt/us, method_string)
+            figname = name + "_l_dt_%.0fus_gs%d%s.pdf" % (dt/us, group_size,
+                                                          method_string)
         else:
-            figname = name + "_nl_dt_%.0fus%s_gs%s.pdf" % (dt/us, method_string,
-                                                           group_size)
+            figname = name + "_nl_dt_%.0fus_gs%d%s.pdf" % (dt/us, group_size,
+                                                           method_string)
         colors = np.zeros((len(par_range), len(par_range), 3))
         for i, j in product(range(len(par_range)), range(len(par_range))):
             c = decide_color(grid_results[par_range[i]/mV, par_range[j]/mV],
                              method=method)
             colors[j][i] = np.array(c)
-        plot_grid(par_range * 150, colors, save=FIG_FOLDER + figname)
+    
+        # We only add the ylabel to the left-most panel
+        show_ylabel = linear and group_size == 100
+        plot_grid(par_range * 150, par_range * 150, colors,
+                  show_ylabel=show_ylabel, save=FIG_FOLDER + figname)
 
+def fig3_detail(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
+         group_size=100):
+    if not quiet:
+        print('Running simulations for detail of Figure 3 ({} '
+              'coupling) with initial '
+              'group size {}'.format('linear' if linear else 'nonlinear',
+                                     group_size))
 
-def fig4(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None):
+    if short:
+        par_range = np.linspace(0.16, 0.4, 10, endpoint=True)*mV
+        par_range_inh = par_range[0:3]
+        par_range_exc = par_range[3:6]
+        repetitions = 5
+        name = "grid_short"
+    else:
+        par_range = np.linspace(0.16, 0.4, 100, endpoint=True)*mV
+        par_range_inh = par_range[0:30]
+        par_range_exc = par_range[30:60]
+        repetitions = 10
+        name = "grid"
+
+    seeds = generate_seeds(seed, len(par_range_inh)*len(par_range_exc)*repetitions)
+
+    grid_results = grid_search(par_range_exc, par_range_inh, linear=linear,
+                               n_rep=repetitions, dt=dt, seeds=seeds,
+                               group_size=group_size)
+    # Plot
+    for method, method_string in zip(['max', 'mean'], ['', '_mean']):
+        if linear:
+            figname = name + "_l_dt_%.0fus_gs%d%s_detail.pdf" % (dt/us, group_size,
+                                                                 method_string)
+        else:
+            figname = name + "_nl_dt_%.0fus_gs%d%s_detail.pdf" % (dt/us, group_size,
+                                                                  method_string)
+        colors = np.zeros((len(par_range_inh), len(par_range_exc), 3))
+        for i, j in product(range(len(par_range_exc)), range(len(par_range_inh))):
+            c = decide_color(grid_results[par_range_exc[i]/mV, par_range_inh[j]/mV],
+                             method=method)
+            colors[j][i] = np.array(c)
+    
+        plot_grid(par_range_exc * 150, par_range_inh * 150, colors,
+                  save=FIG_FOLDER + figname)
+
+def fig4(linear=True, short=True, quiet=False, dt=0.1*ms, bias_correction=False,
+         seed=None):
     """Simulate linearly and nonlinearly coupled networks for pulses of
      different sizes. Generates Figure 4 of the original paper
      (https://doi.org/10.1371/journal.pcbi.1002384.g004)"""
     if not quiet:
         print('Running simulations for Figure 4 ({} '
-              'coupling)'.format('linear' if linear else 'nonlinear'))
+              'coupling){}'.format('linear' if linear else 'nonlinear',
+                                   ' -- with correction for bias' if bias_correction else ''))
 
     # Generate the data
     if short:
@@ -104,14 +156,15 @@ def fig4(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None):
         n_rep = 50
         step_size = 1
 
-    gsize_x = np.arange(1, 180, 5)
-    analytic_x = np.arange(1, 180, step_size)
+    gsize_x = np.arange(1, 182, 5)
+    analytic_x = np.arange(1, 182, step_size)
     seeds = generate_seeds(seed, len(gsize_x)*n_rep + n_rep)
     # Numerical results
-    gsize = Parallel(n_jobs=-2)(delayed(group_size_evolutions)(i, n_rep,
+    gsize = Parallel(n_jobs=-2)(delayed(group_size_evolutions)(i, n_rep=n_rep,
                                                                linear=linear,
                                                                dt=dt,
-                                                               seeds=seeds[idx*n_rep:(idx+1)*n_rep])
+                                                               seeds=seeds[idx*n_rep:(idx+1)*n_rep],
+                                                               bias_correction=bias_correction)
                                 for idx, i in enumerate(gsize_x))
     # Semi-analytical results
     seed_start = len(gsize_x)*n_rep
@@ -130,12 +183,12 @@ def fig4(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None):
     semi_analytic = Parallel(n_jobs=-2)(delayed(calc_group_evolution_cached)(bins, v_hist, i, linear=linear)
                                         for i in analytic_x)
     # Plot the data
-    if linear:
-        fname = "markov_l_dt_%.0fus.pdf" % (dt/us)
-    else:
-        fname = "markov_nl_dt_%.0fus.pdf" % (dt/us)
+    coupling_string = 'l' if linear else 'nl'
+    correction_string = '_corrected' if bias_correction else ''
+    fname = "markov_%s_dt_%.0fus%s.pdf" % (coupling_string, dt/us, correction_string)
 
-    plot_markov(gsize_x, gsize, analytic_x, semi_analytic, linear=linear, save=FIG_FOLDER + fname)
+    plot_markov(gsize_x, gsize, analytic_x, semi_analytic, linear=linear,
+                save=FIG_FOLDER + fname)
 
 
 def all_figs(short=True, quiet=False, dt=0.1*ms):
@@ -144,14 +197,28 @@ def all_figs(short=True, quiet=False, dt=0.1*ms):
     original paper, to reduce the total simulation time."""
     fig2(quiet=quiet, dt=dt, seed=main_seeds[0])
 
-    fig3(linear=True, short=short, quiet=quiet, dt=dt, seed=main_seeds[2])
-    fig3(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[1])
-    fig3(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[1],
+    fig3(linear=True, short=short, quiet=quiet, dt=dt, seed=main_seeds[1])
+    fig3(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[2])
+    fig3(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[3],
          group_size=75)
 
-    fig4(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[3])
-    fig4(linear=True, short=short, quiet=quiet, dt=dt, seed=main_seeds[4])
+    fig4(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[4])
+    fig4(linear=True, short=short, quiet=quiet, dt=dt, seed=main_seeds[5])
+    fig4(linear=False, short=short, quiet=quiet, dt=dt,
+         bias_correction=True, seed=main_seeds[4])
+    fig4(linear=True, short=short, quiet=quiet, dt=dt,
+         bias_correction=True, seed=main_seeds[5])
 
+    fig3_detail(linear=False, short=short, quiet=quiet, dt=1*ms,
+                seed=main_seeds[6])
+    fig3_detail(linear=False, short=short, quiet=quiet, dt=0.5*ms,
+                seed=main_seeds[6])
+    fig3_detail(linear=False, short=short, quiet=quiet, dt=0.1*ms,
+                seed=main_seeds[6])
+    fig3_detail(linear=False, short=short, quiet=quiet, dt=0.05*ms,
+                seed=main_seeds[6])
+    fig3_detail(linear=False, short=short, quiet=quiet, dt=0.01*ms,
+                seed=main_seeds[6])
 
 if __name__ == "__main__":
     import time

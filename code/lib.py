@@ -13,7 +13,7 @@ mem = Memory(cachedir='./__joblib_cache__', verbose=0, compress=True)
 
 
 def group_size_evolutions(group_size, n_rep=1, linear=True, dt=0.1*ms,
-                          seeds=None):
+                          bias_correction=False, seeds=None):
     """Return the evolution of the group size after one cycle"""
     group_ev = []
     for rep in range(n_rep):
@@ -24,7 +24,14 @@ def group_size_evolutions(group_size, n_rep=1, linear=True, dt=0.1*ms,
         results = run_with_cache(56 * ms, group_size=group_size,
                                  stim_time=50 * ms, linear=linear,
                                  repetition=rep, dt=dt, seed=seed)
-        group_ev.append(np.sum(np.abs(results['t'] - 55 * ms) < dt / 2))
+        next_iteration = np.sum(np.abs(results['t'] - 55 * ms) < dt / 2)
+        if bias_correction:
+            spikes_before_stim = np.sum(results['t'] < 50*ms)
+            # Reduce the group size by the number of spikes that we'd expect
+            # by chance in a time step with the given background activity.
+            correction = spikes_before_stim / (50*ms/dt)
+            next_iteration -= correction
+        group_ev.append(next_iteration)
     return group_ev
 
 
@@ -62,8 +69,11 @@ def calc_group_evolution(bins, v_hist, group_size, w_ex=0.2*mV, w_in=0.2*mV,
             P_spike += P_triggered * P_conn(group_size, n_ex, n_in, p_0, p_ex, p_in)
     return (N - group_size)*P_spike
 
+# Note that this is the same as adding the @mem.cache decorator to the function,
+# but the decorator leaves the name of the function unchanged which leads to
+# problems with joblib's Parallel/delayed mechanism
+# (see https://github.com/joblib/joblib/issues/226)
 calc_group_evolution_cached = mem.cache(calc_group_evolution)
-
 
 def run(runtime=250*ms, stim_time=150*ms, N=1000,
         linear=True, w_ex=0.2*mV, w_in=0.2*mV, repetition=0,
@@ -88,7 +98,7 @@ def run(runtime=250*ms, stim_time=150*ms, N=1000,
     V0 = 17.6 * mV / tau_m
 
     if linear:
-        # Build the group of neuron to use
+        # Build the group of neurons to use
         eq = "dV/dt = -gamma*V + V0 : volt"
         G = br2.NeuronGroup(N, model=eq, threshold="V>Theta",
                             reset="V=0*mV", method='euler')
@@ -105,6 +115,36 @@ def run(runtime=250*ms, stim_time=150*ms, N=1000,
         stim_syn = br2.Synapses(stim, G, on_pre="V = 2*Theta")
         stim_syn.connect(i=0, j=np.arange(group_size))
 
+    # Number of spikes initially "in transit" (between 1 and 50 (inclusive))
+    n_transit_spikes = np.random.random_integers(50)
+    # "In transit" means that the spikes arrive in the first 5ms, i.e. as if
+    # triggered by events before the start of the simulation (the synaptic delay
+    # is 5ms and therefore all spikes triggered by neurons within the network
+    # will arrive later than that).
+    transit_spikes = br2.SpikeGeneratorGroup(n_transit_spikes,
+                                             np.arange(n_transit_spikes),
+                                             np.random.rand(n_transit_spikes)*5*ms)
+
+    # We'll assume the initial spikes are 50% excitatory and 50% inhibitory
+    n_inh_transit_spikes = n_transit_spikes//2
+    n_exc_transit_spikes = n_transit_spikes - n_inh_transit_spikes
+    if n_inh_transit_spikes > 0:
+        inh_transit_syn = br2.Synapses(G, G, 'w : volt (constant, shared)',
+                                       on_pre='V -= w', delay=5 * ms - dt)
+        inh_transit_syn.connect(i=np.arange(n_inh_transit_spikes),
+                                j=np.random.randint(N, size=n_inh_transit_spikes))
+        inh_transit_syn.w = w_in
+
+    if linear:  # See explanations about linear vs. non-linear coupling below
+        exc_transit_syn = br2.Synapses(G, G, 'w : volt (constant, shared)',
+                                       on_pre='V += w', delay=5 * ms - dt)
+    else:
+        exc_transit_syn = br2.Synapses(G, G, 'w : volt (constant, shared)',
+                               on_pre='ve += w', delay=5 * ms - dt)
+    exc_transit_syn.connect(i=np.arange(n_exc_transit_spikes),
+                            j=np.random.randint(N, size=n_exc_transit_spikes))
+    exc_transit_syn.w = w_ex
+
     # Build recurrent synaptic connections
     connections = np.random.rand(N, N) < 0.3
     exc_or_inh = np.random.rand(N, N) < 0.5
@@ -118,10 +158,6 @@ def run(runtime=250*ms, stim_time=150*ms, N=1000,
                                on_pre='V += w', delay=5 * ms - dt)
         exc_syn.connect(i=exc_i, j=exc_j)
         exc_syn.w = w_ex
-        inh_syn = br2.Synapses(G, G, 'w : volt (constant, shared)',
-                               on_pre='V -= w', delay=5 * ms - dt)
-        inh_syn.connect(i=inh_i, j=inh_j)
-        inh_syn.w = w_in
     else:
         # For nonlinearly summing synapses, we do not target the membrane
         # potential directly, but store the sum of all synaptic activity in
@@ -170,6 +206,7 @@ def run(runtime=250*ms, stim_time=150*ms, N=1000,
         results['v'], results['bins'] = np.histogram(v_mon.V/mV, bins=bins)
     return results
 
+# (See note for calc_group_evolution_cached above)
 run_with_cache = mem.cache(run)
 
 
@@ -204,9 +241,7 @@ def run_and_bin(ext, inh, linear, repetition, stim_time=150*ms, dt=0.1*ms,
               np.max(after_stim))
     return result
 
-# Note that this is the same as adding the decorator @mem.cached to the function
-# above, but this form of usage (where the function name is unchanged) is not
-# compatible with the multipprocessing approach we use in `do_repetions`.
+# (See note for calc_group_evolution_cached above)
 run_and_bin_cached = mem.cache(run_and_bin)
 
 
@@ -226,22 +261,28 @@ def do_repetitions(ext, inh, linear, n_rep, dt=0.1*ms, seeds=None,
 
 
 @mem.cache
-def grid_search(weights=np.arange(0.16, 0.4, 0.375/150.)*mV,
+def grid_search(weights_exc=np.arange(0.16, 0.4, 0.375/150.)*mV,
+                weights_inh=None,
                 n_rep=1, linear=True, quiet=False, dt=0.1*ms, seeds=None,
                 group_size=100):
     """Perform a grid search over the given parameter range for excitatory and
-    inhibitory synaptic connection strengths. Returns a dictionary mapping each
-    combination of excitatory and inhibitory weights (provided as a tuple
-    ``(exc, inh)`` to a list of results (as returned by `run_and_bin`)."""
+    inhibitory synaptic connection strengths. If only the parameter range for
+    excitatory connections is specified, then the same range is used for
+    inhibitory connections.
+    Returns a dictionary mapping each combination of excitatory and inhibitory
+    weights (provided as a tuple ``(exc, inh)`` to a list of results (as
+    returned by `run_and_bin`)."""
+    if weights_inh is None:
+        weights_inh = weights_exc
     results = {}
-    for ext in weights:
+    for exc in weights_exc:
         if not quiet:
             print('exc=%.3fmV (%d values for inh, '
-                  '%d repetitions each): ' % (ext/mV, len(weights), n_rep),
+                  '%d repetitions each): ' % (exc/mV, len(weights_inh), n_rep),
                   end='')
-        for inh in weights:
+        for inh in weights_inh:
             print('.', end='')
-            results[(ext/mV, inh/mV)] = do_repetitions(ext, inh, linear, n_rep,
+            results[(exc/mV, inh/mV)] = do_repetitions(exc, inh, linear, n_rep,
                                                        dt=dt, seeds=seeds,
                                                        group_size=group_size)
         print()

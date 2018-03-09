@@ -29,16 +29,21 @@ def plot_population_activity(results, ymax1=250, save=None, dt=0.1*ms):
     plt.figure()
     # Draw the raster plot
     ax_raster.vlines(np.arange(150, 250, 5), 0, 200, color="gray", linestyle='dashed')
-    ax_raster.plot(spikes_t/ms, spikes_i, '|', color="black")
+    ax_raster.plot(spikes_t/ms, spikes_i + 1, '|', color="black")  # Plot a 1-based neuron index
     red_spikes = ((spikes_t >= 150*ms) &
                   ((spikes_t % (5*ms) < dt / 2) |
                    (spikes_t % (5*ms) > (5*ms - dt / 2))))
 
-    ax_raster.plot(spikes_t[red_spikes]/ms, spikes_i[red_spikes], 'r|')
+    ax_raster.plot(spikes_t[red_spikes]/ms, spikes_i[red_spikes] + 1, 'r|')
 
     ax_raster.set(xlim=(110, 220), ylim=(0, 200), xlabel='Time (ms)',
-                  ylabel='Neuron')
+                  ylabel='Neuron', xticks=[120, 150, 180, 210],
+                  yticks=[1, 100, 200])
 
+    # Note that we use the simulation dt as the bin size here, so that we don't
+    # lose any time resolution when checking for spikes triggered by the
+    # synchronous stimulation. When plotting the population rate, we however
+    # bin into bins of 1ms
     bins = np.arange(0, 250 + dt/ms, dt/ms)
     binned_activity, _ = np.histogram(spikes_t / ms, bins)
     # Select the spikes that (most likely) arise from the synchronous
@@ -48,29 +53,35 @@ def plot_population_activity(results, ymax1=250, save=None, dt=0.1*ms):
     delay_steps = int(round(5*ms/dt))
     group_size = binned_activity[int(round(150*ms/dt))::delay_steps]
 
-    # Draw the population rate
-    ax_binned.bar(bins[:-1], binned_activity, color="black")
-    ax_binned.set(ylim=(0, ymax1), ylabel='Rate')
+    # Draw the population rate (with 1ms bins)
+    steps_per_bin = int(round(1*ms/dt))
+    binned_activity_1ms = binned_activity.reshape(-1, steps_per_bin).sum(axis=1)
+    ax_binned.bar(bins[:-1:steps_per_bin], binned_activity_1ms,
+                  color="black")
+    ax_binned.set(ylim=(0, ymax1), ylabel='Rate', yticks=[0, 100, 200])
 
     # Draw the group size
     ax_groups.bar(np.arange(150, 250, 5), group_size, color='red')
-    ax_groups.set(ylim=(0, ymax1), ylabel="g'")
+    ax_groups.set(ylim=(0, ymax1), ylabel="g'", yticks=[0, 100, 200])
 
     save_fig(save, fig)
 
 
-def plot_grid(par_range, colors, save=None):
+def plot_grid(par_range_exc, par_range_inh, colors, show_ylabel=True, save=None):
     """Draw the result of a parameter search"""
-    fig, ax = plt.subplots(gridspec_kw={'top': 0.95,
+    fig, ax = plt.subplots(figsize=(1.72, 1.72),  # three panels
+                           gridspec_kw={'top': 0.95,
                                         'right': 0.95,
-                                        'left': 0.175,
-                                        'bottom': 0.15})
-    ax.imshow(colors, extent=[min(par_range/mV),
-                              max(par_range/mV),
-                              max(par_range/mV),
-                              min(par_range/mV)])
-    ax.set_xlabel("Total ext weight")
-    ax.set_ylabel("Total Inh weight")
+                                        'left': 0.25,
+                                        'bottom': 0.23})
+    ax.imshow(colors, extent=[min(par_range_exc/mV),
+                              max(par_range_exc/mV),
+                              max(par_range_inh/mV),
+                              min(par_range_inh/mV)])
+    ax.set(xlabel="Total excitatory weight",
+           xticks=[30, 45, 60], yticks=[30, 45, 60])
+    if show_ylabel:
+        ax.set_ylabel("Total inhibitory weight")
     save_fig(save, fig=fig)
 
 
@@ -83,10 +94,10 @@ def plot_markov(group_x, group_ev, analytic_x, semi_analytic, save=None, linear=
                                         'right': 0.95})
     # Numeric solution
     ax.set(aspect='equal', xticks=[1] + list(range(25, group_x[-1]+1, 25)),
-       yticks=[1] + list(range(25, group_x[-1]+1, 25)),
-       xlim=(0, group_x[-1]), ylim=(0, group_x[-1]),
-       xlabel="# of synchronized neurons g'0",
-       ylabel="# of synchronized neurons g'1")
+           yticks=list(range(0, group_x[-1]+1, 25)),
+           xlim=(-5, group_x[-1]+3.5/2), ylim=(-5, group_x[-1]+3.5/2),
+           xlabel="# of synchronized neurons $g'_0$",
+           ylabel="# of synchronized neurons $g'_1$")
     ax.plot(group_x, np.array(group_ev), marker='_',
             ms=3.5,
             mew=1,
