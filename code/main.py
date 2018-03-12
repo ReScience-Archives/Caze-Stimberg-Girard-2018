@@ -160,12 +160,14 @@ def fig4(linear=True, short=True, quiet=False, dt=0.1*ms, bias_correction=False,
     analytic_x = np.arange(1, 182, step_size)
     seeds = generate_seeds(seed, len(gsize_x)*n_rep + n_rep)
     # Numerical results
-    gsize = Parallel(n_jobs=-2)(delayed(group_size_evolutions)(i, n_rep=n_rep,
-                                                               linear=linear,
-                                                               dt=dt,
-                                                               seeds=seeds[idx*n_rep:(idx+1)*n_rep],
-                                                               bias_correction=bias_correction)
-                                for idx, i in enumerate(gsize_x))
+    results = Parallel(n_jobs=-2)(delayed(group_size_evolutions)(i, n_rep=n_rep,
+                                                                 linear=linear,
+                                                                 dt=dt,
+                                                                 seeds=seeds[idx*n_rep:(idx+1)*n_rep],
+                                                                 bias_correction=bias_correction)
+                                  for idx, i in enumerate(gsize_x))
+    g0 = [[result[0] for result in repetitions] for repetitions in results]
+    g1 = [[result[1] for result in repetitions] for repetitions in results]
     # Semi-analytical results
     seed_start = len(gsize_x)*n_rep
     result_list = Parallel(n_jobs=-2)(delayed(run_with_cache)(stim_time=None,
@@ -187,8 +189,8 @@ def fig4(linear=True, short=True, quiet=False, dt=0.1*ms, bias_correction=False,
     correction_string = '_corrected' if bias_correction else ''
     fname = "markov_%s_dt_%.0fus%s.pdf" % (coupling_string, dt/us, correction_string)
 
-    plot_markov(gsize_x, gsize, analytic_x, semi_analytic, linear=linear,
-                save=FIG_FOLDER + fname)
+    plot_markov(g0, g1, analytic_x, semi_analytic, linear=linear,
+                save=FIG_FOLDER + fname, bias_correction=bias_correction)
 
 
 def all_figs(short=True, quiet=False, dt=0.1*ms):

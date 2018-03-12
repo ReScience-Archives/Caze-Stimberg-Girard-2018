@@ -90,7 +90,8 @@ def plot_grid(par_range_exc, par_range_inh, colors, show_ylabel=True, save=None)
     save_fig(save, fig=fig)
 
 
-def plot_markov(group_x, group_ev, analytic_x, semi_analytic, save=None, linear=True):
+def plot_markov(group_x, group_ev, analytic_x, semi_analytic, save=None,
+                linear=True, bias_correction=False):
     """Plot the most probable evolution of a group size at time t+1 given the
     size at time t"""
     fig, ax = plt.subplots(gridspec_kw={'top': 0.95,
@@ -98,17 +99,18 @@ def plot_markov(group_x, group_ev, analytic_x, semi_analytic, save=None, linear=
                                         'left': 0.2,
                                         'right': 0.95})
     # Numeric solution
-    ax.set(aspect='equal', xticks=[1] + list(range(25, group_x[-1]+1, 25)),
-           yticks=list(range(0, group_x[-1]+1, 25)),
-           xlim=(-5, group_x[-1]+3.5/2), ylim=(-5, group_x[-1]+3.5/2),
-           xlabel="# of synchronized neurons $g'_0$",
-           ylabel="# of synchronized neurons $g'_1$")
+    g_symbol = '\hat{g}' if bias_correction else 'g'
+    ax.set(aspect='equal', xticks=[1] + list(range(25, np.max(group_x)+1, 25)),
+           yticks=list(range(0, np.max(group_x)+1, 25)),
+           xlim=(-5, np.max(group_x)+3.5/2), ylim=(-5, np.max(group_x)+3.5/2),
+           xlabel="# of synchronized neurons ${}'_0$".format(g_symbol),
+           ylabel="# of synchronized neurons ${}'_1$".format(g_symbol))
     ax.plot(group_x, np.array(group_ev), marker='_',
             ms=3.5,
             mew=1,
             color="black",
             linestyle='', alpha=0.2)
-    ax.plot(group_x,
+    ax.plot(np.mean(np.array(group_x), axis=1),
             np.mean(np.array(group_ev), axis=1),
             marker='s', color="lime",
             linestyle='')

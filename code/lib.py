@@ -21,17 +21,28 @@ def group_size_evolutions(group_size, n_rep=1, linear=True, dt=0.1*ms,
             seed = None
         else:
             seed = seeds[rep]
+        if bias_correction:
+            # Run without stimulation, but otherwise identical (same seed)
+            results_no_stim = run_with_cache(56 * ms, group_size=0,
+                                             stim_time=None, linear=linear,
+                                             repetition=rep, dt=dt, seed=seed)
         results = run_with_cache(56 * ms, group_size=group_size,
                                  stim_time=50 * ms, linear=linear,
                                  repetition=rep, dt=dt, seed=seed)
         next_iteration = np.sum(np.abs(results['t'] - 55 * ms) < dt / 2)
         if bias_correction:
-            spikes_before_stim = np.sum(results['t'] < 50*ms)
-            # Reduce the group size by the number of spikes that we'd expect
-            # by chance in a time step with the given background activity.
-            correction = spikes_before_stim / (50*ms/dt)
-            next_iteration -= correction
-        group_ev.append(next_iteration)
+            # Use the actual number of synchronous spike at the time of the
+            # stimulation -- due to the background activity, this is usually
+            # higher than the size of the stimulation group
+            g0 = np.sum(np.abs(results['t'] - 50 * ms) < dt / 2)
+            # Only count the synchronous spikes that were added due to the
+            # stimulation
+            next_iteration_no_stim = np.sum(np.abs(results_no_stim['t'] - 55 * ms) < dt / 2)
+            g1 = next_iteration - next_iteration_no_stim
+        else:
+            g0 = group_size
+            g1 = next_iteration
+        group_ev.append((g0, g1))
     return group_ev
 
 
