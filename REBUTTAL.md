@@ -42,7 +42,7 @@ We modified the discussion accordingly (see L434 in the .tex file).
 > solution yet, but I think it would be useful to have a sentence or two
 > specifying if/where the derivation presented differs from the original one.
 
-We have now clarified this in the text. The derivation is just provided as a
+We clarified this in the text. The derivation is just provided as a
 more detailed description of the approach presented in the original article but
 is otherwise identical. There is a potential difference in the way the observed
 membrane potential distribution is used as an estimate of P(V), as the details
@@ -55,7 +55,7 @@ were not mentioned in the original article.
 > confused by how you obtain a numerical approximation of P(V) as opposed to
 > how the original paper does it.
 
-We added a supplemental figure (fig.7) and we discussed further the difference between the semi-analytical result and the numerical one (L430)
+We added a redone the main figure (fig.2) and added a supplemental figure without correction (fig.7) and we discussed further the difference between the semi-analytical result and the numerical one (L430)
 
 # RW2
 
