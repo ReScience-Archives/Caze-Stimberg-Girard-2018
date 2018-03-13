@@ -1,5 +1,8 @@
 We would like to again thank the reviewers for their valuable and constructive
-comments.
+comments. We have updated the code and the manuscript, and additionally
+added a file `Caze_2018_diff.pdf` which shows the changes in the manuscript
+(changes in the figures are not always well presented, but the document should
+give a good overview of which parts of the text have changed).
 
 In preparing the revision, we noticed an error in our plotting code. The network 
 firing rate plotted in Fig.1 (middle row) was incorrectly based on a bin size of
@@ -10,7 +13,7 @@ activity appeared to be 10 times lower than it actually was.
 Below we describe, when needed, how we changed the code and the manuscript to
 adress the reviewers' comments. 
 
-# RW1
+## Reviewer 1 (@pietromarchesi)
 
 > There's a small typo in the code README, last section on parallelization
 > reads 'multiple CPU cores a moder computer provide'.
@@ -36,18 +39,18 @@ simulation and the corresponding plot to our Figure 2.
 > differences found (detail in Figure 2, underestimation in Figure 3) before
 > discussing the potential causes. 
 
-We modified the discussion accordingly (see L434 in the .tex file).
+We modified the discussion accordingly (see L451 in the .tex file).
 
 > I haven't gone through the details of the derivation of the semi-analytic
 > solution yet, but I think it would be useful to have a sentence or two
 > specifying if/where the derivation presented differs from the original one.
 
-We clarified this in the text. The derivation is just provided as a
-more detailed description of the approach presented in the original article but
-is otherwise identical. There is a potential difference in the way the observed
-membrane potential distribution is used as an estimate of P(V), as the details
-(e.g. number of bins for the histogram, use of interpolation/smoothing, etc.)
-were not mentioned in the original article.
+We clarified this in the text (see L345 in the .tex file). The derivation is
+just provided as a more detailed description of the approach presented in the
+original article but is otherwise identical. There is a potential difference in
+the way the observed membrane potential distribution is used as an estimate of
+P(V), as the details (e.g. number of bins for the histogram, use of
+interpolation/smoothing, etc.) were not mentioned in the original article.
 
 > I don't fully agree with the the statement that the semi-analytical result
 > underestimates the numerical one, if anything to me it looks shifted to the
@@ -55,18 +58,24 @@ were not mentioned in the original article.
 > confused by how you obtain a numerical approximation of P(V) as opposed to
 > how the original paper does it.
 
-We added a redone the main figure (fig.2) and added a supplemental figure without correction (fig.7) and we discussed further the difference between the semi-analytical result and the numerical one (L430)
+We have added a new paragraph to the text (see L338 in the .tex file) that
+introduces a correction to the plotted values, bringing the numerical results
+into closer agreement with the original study. Figure 3 has been updated
+accordingly and the previous version of the figure (without the correction) has
+been added as a supplementary figure (Figure 7). We have also added more
+discussion of the quantitative differences between our results and the original
+study (L444 in the .tex file).
 
-# RW2
+## Reviewer 2 (@degoldschmidt)
 
-## Major issue: 
+### Major issue: 
 
 > First, while many of the decisions made by the authors have been explained,
 > such as the choice of Brian and certain parameter adjustments, I am missing
 > an explanation for why the authors decided not to use the original analytical
 > solution as well. 
 
-We now further justify our choice in the main text(see L339 in tex file). We
+We now further justify our choice in the main text (see L339 in .tex file). We
 found that the analytical approach was not described in as much detail as the
 semi-analytical one and therefore focussed on the latter. If the reviewers think
 that including the analytical solution is important, then we can contact the
@@ -79,12 +88,19 @@ original authors to have further details.
 > Fig. 2 (see below).
 
 We have added some more quantitative comparison to the results in the original
-work (See L328).
+work for Figure 2 (See L423 in the .tex file) and Figure 3 (see L444 in the .tex
+file), as well as an extended discussion of the source of the differences via
+the additional simulations presented in the supplementary Figures 5 and 6.
 
-## Minor issues
+### Minor issues
+We have corrected the typographical issues (spaces, commas, etc.) as suggested
+by the reviewer, as well as rewritten several sentences to make them more clear
+and to avoid parentheses. We have also aligned xticks/yticks with the values
+used in the original publication.
 
-> In lib.py, I am a bit puzzled about the way how the function "run_with_cache" is defined. Why can't
-> the run function be decorated with `@mem.cache` as for the other functions?
+> In lib.py, I am a bit puzzled about the way how the function "run_with_cache"
+> is defined. Why can't the run function be decorated with `@mem.cache` as for
+> the other functions?
 
 Functions that are to be used with joblib's Parallel/delayed mechanism cannot
 use the `@mem.cache` decorator directly (this is a known limitation of joblib
@@ -94,9 +110,8 @@ about this to the first time in `lib.py` where this occurs (the definition of
 `calc_group_evolution_cached`) and refer back to this comment for the other
 functions such as `run_with_cache`.
 
-
-> Could the authors elaborate on the definition of V0 in line 81. It does not seem to be included in 
-> Table 1 or the main text.
+> Could the authors elaborate on the definition of V0 in line 81. It does not
+> seem to be included in Table 1 or the main text.
 
 V0 is the membrane potential displacement due to a constant input current. It
 is included in equation 1 and mentioned in the surrounding text, but its value
@@ -107,7 +122,7 @@ was never mentioned. We now include it in Table 1.
 > function to achieve the nonlinearity function, then explain that ve is used as
 > a placeholder variable equivalent to x from the equation. 
 
-We rewrote given reviewers recommendations. (see L311)
+We rewrote the text according to the reviewer's recommendations (see L311 in the .tex file)
 
 > The C panel from the original study has not been
 > replicated and further the differences could be described in more detail. I
@@ -117,13 +132,12 @@ We rewrote given reviewers recommendations. (see L311)
 > larger.
 
 The C panel has now been replicated and we include further details about the
-quantitative differences to the original study.
+quantitative differences to the original study (See L423 in the .tex file).
 
 > Why did the authors not try the initial random spikes in transit?
 
 Our simulations now include initial random spikes, although the details of their
 implementation was not clear from the text.
-
 
 > I got thrown a ton of FutureWarnings concerning the use of certain dtypes in
 > Brian. I think this is related to the version/system I was using (although I
