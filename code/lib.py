@@ -14,7 +14,11 @@ mem = Memory(cachedir='./__joblib_cache__', verbose=0, compress=True)
 
 def group_size_evolutions(group_size, n_rep=1, linear=True, dt=0.1*ms,
                           bias_correction=False, seeds=None):
-    """Return the evolution of the group size after one cycle"""
+    """Return the evolution of the group size after one cycle. Returns a
+    tuple (g0, g1), containing the size of the group size at stimulation time
+    (g0), and the group size in the next iteration (g1). If ``bias_correction``
+    is set to True, both of these values are corrected for the bias introduced
+    by the finite time step size."""
     group_ev = []
     for rep in range(n_rep):
         if seeds is None:
@@ -53,6 +57,8 @@ def F(bins, v_hist, epsilon):
 
 
 def epsilon(n_ex, n_in, w_ex, w_in, linear=True):
+    """Total input for a neuron with given number of connections and given
+       connection weights."""
     in_input = -n_in*w_in
     ex_input = n_ex*w_ex
     if not linear:
@@ -62,6 +68,8 @@ def epsilon(n_ex, n_in, w_ex, w_in, linear=True):
 
 
 def P_conn(group_size, n_ex, n_in, p_0, p_ex, p_in):
+    """Probability that a neuron receives exactly n_ex excitatory and n_in
+       inhibitory connections."""
     n_remain = group_size - n_ex - n_in
     return (comb(group_size, n_ex+n_in, exact=True) * comb(n_ex+n_in, n_ex, exact=True) *
             (p_0*p_ex)**n_ex * (p_0*p_in)**n_in * (1 - p_0)**n_remain)
@@ -364,4 +372,3 @@ def decide_color(results, method='max'):
                         persistent], dtype=float)/total
     else:
         raise AssertionError('Unkown method: %s' % method)
-

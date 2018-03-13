@@ -19,8 +19,8 @@ br2.prefs.codegen.target = 'cython'
 
 FIG_FOLDER = "../article/Figs/"
 
-main_seeds = [3982293089, 1861487226, 2570878100, 3472600360, 2780156760,
-              1966509933, 1687607157]
+main_seeds = [29732904, 94614906, 1861487226, 2570878100, 3472600360, 2780156760,
+              1966509933, 1687607157, 238607587]
 
 if not os.path.exists(FIG_FOLDER):
     os.makedirs(FIG_FOLDER)
@@ -34,33 +34,48 @@ def generate_seeds(main_seed, n_seeds):
     return np.random.randint(0, 2**32-1, size=n_seeds, dtype=np.uint32)
 
 
-def fig2(quiet=False, dt=0.1*ms, seed=None):
+def fig2(linear=True, quiet=False, dt=0.1*ms, seed=None):
     """Generate the raster plot and population statistics for Figure 2
     of the original paper (https://doi.org/10.1371/journal.pcbi.1002384.g002)"""
     if not quiet:
-        print('Running simulations for Figure 2')
-    seeds = generate_seeds(seed, 2)
-    results = run_with_cache(w_ex=0.2*mV, w_in=0.2*mV, linear=True, dt=dt,
-                             seed=seeds[0])
-    results_nl = run_with_cache(w_ex=0.2*mV, w_in=0.2*mV, linear=False, dt=dt,
-                                seed=seeds[1])
+        coupling = 'linear' if linear else 'non-linear'
+        print('Running simulations for Figure 2 ({} coupling)'.format(coupling))
+    results = run_with_cache(w_ex=0.2*mV, w_in=0.2*mV, linear=linear, dt=dt,
+                             seed=seed)
 
-    figname = "spikes_l_dt_%.0fus.pdf" % (dt/us)
+    if linear:
+        figname = "spikes_l_dt_%.0fus.pdf" % (dt/us)
+    else:
+        figname = "spikes_nl_dt_%.0fus.pdf" % (dt / us)
     plot_population_activity(results, save=FIG_FOLDER + figname, dt=dt)
-    figname = "spikes_nl_dt_%.0fus.pdf" % (dt/us)
-    plot_population_activity(results_nl, save=FIG_FOLDER + figname, dt=dt)
 
 
- 
+def fig2_strong_connections(linear=True, quiet=False, dt=0.1*ms, seed=None):
+    """Generate a raster plot and population statistics similar to Figure 2
+        of the original paper, but for high connection strengths"""
+    if not quiet:
+        coupling = 'linear' if linear else 'non-linear'
+        print('Running simulations for variant of Figure 2 ({} coupling; high '
+              'connection strengths)'.format(coupling))
+    results = run_with_cache(w_ex=0.4*mV, w_in=0.4*mV, linear=linear, dt=dt,
+                             seed=seed)
+
+    if linear:
+        figname = "spikes_l_strong_dt_%.0fus.pdf" % (dt/us)
+    else:
+        figname = "spikes_nl_strong_dt_%.0fus.pdf" % (dt / us)
+    plot_population_activity(results, save=FIG_FOLDER + figname, dt=dt)
+
+
 def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
          group_size=100):
     """Perform a grid search over the excitatory and inhibitory coupling
-    strengths and generate Figures 3a and 3b of the original paper
+    strengths and generate Figure of the original paper
     (https://doi.org/10.1371/journal.pcbi.1002384.g003)"""
     if not quiet:
         print('Running simulations for Figure 3 ({} '
               'coupling) with initial '
-              'group size {}'.format('linear' if linear else 'nonlinear',
+              'group size {}'.format('linear' if linear else 'non-linear',
                                      group_size))
 
     if short:
@@ -89,18 +104,19 @@ def fig3(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
             c = decide_color(grid_results[par_range[i]/mV, par_range[j]/mV],
                              method=method)
             colors[j][i] = np.array(c)
-    
+
         # We only add the ylabel to the left-most panel
         show_ylabel = linear and group_size == 100
         plot_grid(par_range * 150, par_range * 150, colors,
                   show_ylabel=show_ylabel, save=FIG_FOLDER + figname)
+
 
 def fig3_detail(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
          group_size=100):
     if not quiet:
         print('Running simulations for detail of Figure 3 ({} '
               'coupling) with initial '
-              'group size {}'.format('linear' if linear else 'nonlinear',
+              'group size {}'.format('linear' if linear else 'non-linear',
                                      group_size))
 
     if short:
@@ -138,6 +154,7 @@ def fig3_detail(linear=True, short=True, quiet=False, dt=0.1*ms, seed=None,
         plot_grid(par_range_exc * 150, par_range_inh * 150, colors,
                   save=FIG_FOLDER + figname)
 
+
 def fig4(linear=True, short=True, quiet=False, dt=0.1*ms, bias_correction=False,
          seed=None):
     """Simulate linearly and nonlinearly coupled networks for pulses of
@@ -145,7 +162,7 @@ def fig4(linear=True, short=True, quiet=False, dt=0.1*ms, bias_correction=False,
      (https://doi.org/10.1371/journal.pcbi.1002384.g004)"""
     if not quiet:
         print('Running simulations for Figure 4 ({} '
-              'coupling){}'.format('linear' if linear else 'nonlinear',
+              'coupling){}'.format('linear' if linear else 'non-linear',
                                    ' -- with correction for bias' if bias_correction else ''))
 
     # Generate the data
@@ -197,26 +214,34 @@ def all_figs(short=True, quiet=False, dt=0.1*ms):
     """Generate all figures. With ``short=True`` (the default), coarser
     parameter explorations and less repetitions are used compared to the
     original paper, to reduce the total simulation time."""
-    fig2(quiet=quiet, dt=dt, seed=main_seeds[0])
+    fig2(linear=True, quiet=quiet, dt=dt, seed=main_seeds[0])
+    fig2(linear=False, quiet=quiet, dt=dt, seed=main_seeds[1])
 
-    fig3(linear=True, short=short, quiet=quiet, dt=dt, seed=main_seeds[1])
-    fig3(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[2])
-    fig3(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[3],
+    fig3(linear=True, short=short, quiet=quiet, dt=dt, seed=main_seeds[2])
+    fig3(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[3])
+    fig3(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[4],
          group_size=75)
 
-    fig4(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[4])
-    fig4(linear=True, short=short, quiet=quiet, dt=dt, seed=main_seeds[5])
+    fig4(linear=False, short=short, quiet=quiet, dt=dt, seed=main_seeds[5])
+    fig4(linear=True, short=short, quiet=quiet, dt=dt, seed=main_seeds[6])
     fig4(linear=False, short=short, quiet=quiet, dt=dt,
-         bias_correction=True, seed=main_seeds[4])
-    fig4(linear=True, short=short, quiet=quiet, dt=dt,
          bias_correction=True, seed=main_seeds[5])
+    fig4(linear=True, short=short, quiet=quiet, dt=dt,
+         bias_correction=True, seed=main_seeds[6])
 
+    # Additional figures for supplement
     fig3_detail(linear=False, short=short, quiet=quiet, dt=0.1*ms,
-                seed=main_seeds[6])
+                seed=main_seeds[7])
     fig3_detail(linear=False, short=short, quiet=quiet, dt=0.05*ms,
-                seed=main_seeds[6])
+                seed=main_seeds[7])
     fig3_detail(linear=False, short=short, quiet=quiet, dt=0.01*ms,
-                seed=main_seeds[6])
+                seed=main_seeds[7])
+
+    fig2_strong_connections(linear=False, quiet=quiet, dt=0.1*ms,
+                            seed=main_seeds[8])
+    fig2_strong_connections(linear=False, quiet=quiet, dt=0.01 * ms,
+                            seed=main_seeds[8])
+
 
 if __name__ == "__main__":
     import time
@@ -242,7 +267,7 @@ if __name__ == "__main__":
         else:
             print('Running the full number of parameters/repetitions.')
             print('These simulations will take several hours to complete. Storing '
-                  'the results will take about ~6GB of disk space.')
+                  'the results will take about ~9GB of disk space.')
         print('Note that you can interrupt the simulation at any time, intermediate '
               'results will be stored and reused the next time.')
         print('Using a simulation time step of %s.' % str(dt))
