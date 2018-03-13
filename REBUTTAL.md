@@ -55,7 +55,7 @@ were not mentioned in the original article.
 > confused by how you obtain a numerical approximation of P(V) as opposed to
 > how the original paper does it.
 
-We added a figure (fig.5) and discussed further the difference between the semi-analytical result and the numerical one (L430)
+We added a supplemental figure (fig.7) and we discussed further the difference between the semi-analytical result and the numerical one (L430)
 
 # RW2
 
@@ -107,7 +107,7 @@ was never mentioned. We now include it in Table 1.
 > function to achieve the nonlinearity function, then explain that ve is used as
 > a placeholder variable equivalent to x from the equation. 
 
-TODO
+We rewrote given reviewers recommendations. (see L311)
 
 > The C panel from the original study has not been
 > replicated and further the differences could be described in more detail. I
@@ -122,7 +122,7 @@ quantitative differences to the original study.
 > Why did the authors not try the initial random spikes in transit?
 
 Our simulations now include initial random spikes, although the details of their
-implementation was not clear from the text. (See ...)
+implementation was not clear from the text.
 
 
 > I got thrown a ton of FutureWarnings concerning the use of certain dtypes in
