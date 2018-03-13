@@ -252,6 +252,7 @@ The originality of this model lays in a filtering of the excitatory inputs by th
     V_a + \frac{V_c-V_a}{V_b-V_a} (x - V_a), & \text{, if } V_a<x \leq V_b\\
     V_c            & \text{, otherwise.}
 \end{cases}
+\label{eq:non-linear}
 \end{equation}
 For this non-linear function, the biological interpretation is that below a first threshold $V_a$, excitatory inputs are propagated passively by the dendrite and sum linearly. Above this threshold, they trigger a dendritic spike, resulting in an amplified somatic voltage. If they are even higher and cross the threshold $V_b$, they stop increasing the somatic voltage and saturate. Note that this non-linearity only affects spikes received synchronously as has been observed experimentally. With the introduction of this non-linearity, the modelled point neuron becomes an effective model of a neuron with one non-linear dendrite.
 
@@ -302,7 +303,14 @@ inh_syn = br2.Synapses(G, G, 'w : volt (constant, shared)',
 \end{code}
 Note that the delay has been set as one time step (\verb|dt|) less than \SI{5}{\milli\second}. This is because in Brian, when a neuron receives synaptic input, this input can only trigger a threshold crossing of the receiving neuron in the following time step. To get chains of propagated synchronous spikes every \SI{5}{\milli\second} as in the original study, we therefore have to reduce the delay by one time step.
 
-For non-linearly coupled networks, we have to use a slightly more complicated approach where we sum up all the received excitatory input in a variable \verb|ve|, apply the non-linear function $\sigma$ to this input, and then reset the variable \verb|ve| back to 0 to prepare for the next time step. In Brian syntax (the definition of the inhibitory synapses is identical to the linearly coupled network):
+We used a the predefined \verb|clip| function to implemented non-linear coupling into a network. The function clips a value to a given range, following the syntax
+\begin{code}
+clip(value, lower_bound, upper_bound)
+\end{code}
+
+We employed this functions on the received excitatory inputs stored in a placed holder variable \verb|ve|. The variable corresponds to x in eq.~\ref{eq:non-linear}. We then reset the variable \verb|ve| back to 0 to prepare for the next time step. In Brian syntax (the definition of the inhibitory synapses is identical to the linearly coupled network):
+
+
 \begin{code}
 eq = """dV/dt = -gamma*V + V0 : volt
         ve : volt
@@ -316,10 +324,8 @@ G.run_regularly('''
                 ve = 0*mV
                 ''', when='after_synapses')
 \end{code}
-The \verb|run_regularly| operation that is run every time step to implement the non-linear $\sigma$ function refers to the predefined \verb|clip| function which clips the value to a given range, following the syntax
-\begin{code}
-clip(value, lower_bound, upper_bound)
-\end{code}
+
+The \verb|run_regularly| operation enables that to run the non-linear summation between every time steps.
 
 In addition to random initial conditions, i.e. random initial values of the membrane potential, the simulation includes 1--50 random spikes ``initially in transit''. The original article does not go into further details about their implementation, so we decided to use the following: at the beginning of the simulation, a uniformly distributed number between 1 and 50 is drawn to determine the total number of initial spikes. These spikes are ``in transit'', meaning that they are modelled as arising from events before the start of the simulation. Since the synaptic delay in the network is \SI{5}{\milli\second}, we draw the arrival times for these spikes between \SI{0}{\milli\second} and \SI{5}{\milli\second}. Consistent with the probability for excitatory connections in the network ($p_\text{ex}=0.5$), we take half of these spikes as arising from excitatory and half from inhibitory sources, modelling their effect as described above.
 
@@ -468,7 +474,7 @@ We would like to thank Raoul Martin Memmesheimer for providing implementation de
 \includegraphics[width=\textwidth]{Figs/grid_nl_dt_100us_gs75.pdf}
 \end{subfigure}
 \caption{\label{fig:grid_max}
-\textbf{Qualitative network behaviour as a function of excitatory and inhibitory connection strength for linearly (A) and non-linearly (B, C) coupled networks.} All conventions as in Fig.~\ref{fig:grid}, but points are coloured according the observed qualitative behaviour that occurred the most often among the 10 independent simulations for given connection strengths.}
+\textbf{Using max instead of mean to color each pixels.} All conventions as in Fig.~\ref{fig:grid}, but points are coloured according the observed qualitative behaviour that occurred the most often among the 10 independent simulations for given connection strengths.}
 \end{figure}
 
 \begin{figure}[h]
@@ -486,7 +492,7 @@ We would like to thank Raoul Martin Memmesheimer for providing implementation de
 \includegraphics[width=\textwidth]{Figs/grid_nl_dt_10us_gs100_mean_detail.pdf}
 \end{subfigure}
 \caption{\label{fig:grid_detail}
-\textbf{Qualitative network behaviour as a function of excitatory and inhibitory connection strength for non-linearly coupled networks simulated with different simulation time steps.} Color code as in Fig.~\ref{fig:grid}. Results are shown for a smaller range of connection strengths than in Fig.~\ref{fig:grid}, and only for non-linearly coupled networks with an synchronous stimulation of 100 neurons. The total inhibitory connection strength was varied between \SI{24}{\milli\volt} and \SI{34.55}{\milli\volt}, the total excitatory connection strength was varied between \SI{34.91}{\milli\volt} and \SI{45.45}{\milli\volt}, i.e. the parameter range corresponds to a square region at the top of Fig.~\ref{fig:grid}B. Simulations where performed with simulation time steps of \SI{0.1}{\milli\second} (A; also the value used for all other simulations shown), \SI{0.05}{\milli\second} (B), and \SI{0.01}{\milli\second} (C).}
+\textbf{Zoom on qualitative network behaviour with different simulation time steps.} Color code as in Fig.~\ref{fig:grid}. Results are shown for a smaller range of connection strengths than in Fig.~\ref{fig:grid}, and only for non-linearly coupled networks with an synchronous stimulation of 100 neurons. The total inhibitory connection strength was varied between \SI{24}{\milli\volt} and \SI{34.55}{\milli\volt}, the total excitatory connection strength was varied between \SI{34.91}{\milli\volt} and \SI{45.45}{\milli\volt}, i.e. the parameter range corresponds to a square region at the top of Fig.~\ref{fig:grid}B. Simulations where performed with simulation time steps of \SI{0.1}{\milli\second} (A; also the value used for all other simulations shown), \SI{0.05}{\milli\second} (B), and \SI{0.01}{\milli\second} (C).}
 \end{figure}
 
 \begin{figure}
@@ -500,7 +506,7 @@ We would like to thank Raoul Martin Memmesheimer for providing implementation de
 \includegraphics[width=\textwidth]{Figs/spikes_nl_strong_dt_10us.pdf}
 \end{subfigure}
 \caption{\label{fig:raster_strong}
-\textbf{Propagation of synchronous spiking in non-linearly coupled networks with strong recurrent connections when simulated with a time step of \SI{0.1}{\milli\second} (A), or \SI{0.01}{\milli\second} (B).} All conventions as in Fig.~\ref{fig:raster}, but for strong recurrent connections ($w_\text{ex} = w_\text{in} = \SI{0.4}{\milli\volt}$). Both simulated networks use non-linearly coupling, the network shown in panel (B) is simulated with a 10-times finer temporal resolution compared to the other results shown.}
+\textbf{Propagation of synchronous spiking when simulated with small timesteps}.(A) Time step of \SI{0.1}{\milli\second}, or \SI{0.01}{\milli\second} (B) All conventions as in Fig.~\ref{fig:raster}, but for strong recurrent connections ($w_\text{ex} = w_\text{in} = \SI{0.4}{\milli\volt}$). Both simulated networks use non-linearly coupling, the network shown in panel (B) is simulated with a 10-times finer temporal resolution compared to the other results shown.}
 \end{figure}
 
 \begin{figure}[h]
@@ -514,6 +520,6 @@ We would like to thank Raoul Martin Memmesheimer for providing implementation de
 \includegraphics[width=\textwidth]{Figs/markov_nl_dt_100us.pdf}
 \end{subfigure}
 \caption{\label{fig:markov}
-\textbf{Evolution of synchronous pulses in linearly (A) and non-linearly (B) coupled networks, corrected for the background activity.} All conventions as in Fig.~\ref{fig:markov_corrected}. The numerical results shown here (gray lines and green squares) are not corrected for the bias introduced by the clock-driven integration method (see text for details).}
+\textbf{Evolution of synchronous pulses when using smaller timesteps in linearly (A) and non-linearly (B) coupled networks, corrected for the background activity.} All conventions as in Fig.~\ref{fig:markov_corrected}. The numerical results shown here (gray lines and green squares) are not corrected for the bias introduced by the clock-driven integration method (see text for details).}
 \end{figure}
 \end{document}
