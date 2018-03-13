@@ -55,7 +55,7 @@ were not mentioned in the original article.
 > confused by how you obtain a numerical approximation of P(V) as opposed to
 > how the original paper does it.
 
-TODO: Things changed with the new correction
+We added a figure (fig.5) and discussed further the difference between the semi-analytical result and the numerical one (L430)
 
 # RW2
 
